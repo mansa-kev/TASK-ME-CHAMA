@@ -1,0 +1,848 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String       @id @default(uuid())
+  email                  String       @unique
+  password               String
+  name                   String
+  idNumber               String?
+  kraPin                 String?
+  gender                 String?
+  dateOfBirth            DateTime?
+  phone                  String?
+  address                String?
+  nextOfKinName          String?
+  nextOfKinRelation      String?
+  nextOfKinPhone         String?
+  profilePicture         String?
+  idDocument             String?
+  passportPhoto          String?
+  idFront                String?
+  idBack                 String?
+  role                   String       @default("MEMBER") // TCM_SUPER_ADMIN, CHAMA_ADMIN, MEMBER
+  status                 String       @default("ACTIVE") // PENDING, ACTIVE, REJECTED, SUSPENDED
+  requiresPasswordChange Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  chamaId                String?
+  chama                  Chama?       @relation(fields: [chamaId], references: [id])
+  ledger                 Ledger?
+  kyc                    KycDocument?
+  votes                  Vote[]
+  auditLogs              AuditLog[]
+}
+
+model Chama {
+  id                   String               @id @default(uuid())
+  name                 String
+  slug                 String?              @unique
+  registration         String               @unique
+  phone                String?
+  county               String?
+  formationDate        DateTime?
+  meetingFrequency     String?
+  standardContribution Float?
+  lateFine             Float?
+  missedFine           Float?
+  roscaEnabled         Boolean              @default(false)
+  nextPayoutDate       DateTime?
+  nextPayoutMember     String?
+  status               String               @default("ACTIVE") // ACTIVE, TRIAL, SUSPENDED, PENDING_APPROVAL
+  members              User[]
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  subscription         ChamaSubscription?
+  invoices             PlatformInvoice[]
+  bylaws               ChamaBylaws?
+  auditLogs            AuditLog[]
+  ledgers              Ledger[]
+  paymentLogs          PaymentLog[]
+  inventoryItems       InventoryItem[]
+  supportTickets       SupportTicket[]
+  payments             Payment[]
+  communicationLogs    CommunicationLog[]
+  operationsTasks      OperationsTask[]
+  appraisals           Appraisal[]
+  commissions          Commission[]
+  arrearsRecords       ArrearsRecord[]
+  accountLedgers       AccountLedger[]
+  journalVouchers      JournalVoucher[]
+  loans                Loan[]
+  loanGuarantors       LoanGuarantor[]
+  loanRepayments       LoanRepayment[]
+  savingsAccounts      SavingsAccount[]
+  shareHoldings        ShareHolding[]
+  investments          Investment[]
+  fixedDeposits        FixedDeposit[]
+  withdrawalRequests   WithdrawalRequest[]
+  payrollRecords       PayrollRecord[]
+  messageTemplates     MessageTemplate[]
+  roles                Role[]
+  memberTypes          MemberType[]
+  meetings             Meeting[]
+  meetingAttendances   MeetingAttendance[]
+  disciplinaryRecords  DisciplinaryRecord[]
+  welfareFunds         WelfareFund[]
+  welfareClaims        WelfareClaim[]
+  meetingCollections   MeetingCollection[]
+  expenses             Expense[]
+  notices              Notice[]
+  resolutions          Resolution[]
+  Vote                 Vote[]
+  multiSigDisbursements MultiSigDisbursement[]
+  roscaCycles          MerryGoRoundCycle[]
+  dividendDistributions DividendDistribution[]
+}
+
+// ─── SAAS SUBSCRIPTIONS & MULTI-TENANCY ───────────────────
+
+model SubscriptionPlan {
+  id                      String              @id @default(uuid())
+  code                    String              @unique // STARTER, GROWTH, PRO, ENTERPRISE
+  name                    String
+  description             String?
+  priceMonthly            Float
+  priceAnnual             Float
+  maxMembers              Int                 @default(30)
+  maxTransactionsPerMonth Int                 @default(500)
+  features                Json // Array of feature keys/permissions
+  status                  String              @default("ACTIVE") // ACTIVE, ARCHIVED
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  subscriptions           ChamaSubscription[]
+}
+
+model ChamaSubscription {
+  id                 String            @id @default(uuid())
+  chamaId            String            @unique
+  chama              Chama             @relation(fields: [chamaId], references: [id])
+  planId             String
+  plan               SubscriptionPlan  @relation(fields: [planId], references: [id])
+  billingCycle       String            @default("MONTHLY") // MONTHLY, ANNUAL
+  status             String            @default("TRIAL") // ACTIVE, TRIAL, PAST_DUE, CANCELED, SUSPENDED
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime          @default(now())
+  currentPeriodEnd   DateTime
+  autoRenew          Boolean           @default(true)
+  invoices           PlatformInvoice[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+model PlatformInvoice {
+  id             String             @id @default(uuid())
+  subscriptionId String?
+  subscription   ChamaSubscription? @relation(fields: [subscriptionId], references: [id])
+  chamaId        String
+  chama          Chama              @relation(fields: [chamaId], references: [id])
+  invoiceNumber  String             @unique
+  amount         Float
+  currency       String             @default("KES")
+  billingDate    DateTime           @default(now())
+  dueDate        DateTime
+  paidDate       DateTime?
+  paymentMethod  String? // MPESA, CARD, BANK
+  receiptNumber  String?
+  status         String             @default("PENDING") // PENDING, PAID, OVERDUE, VOID
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model ChamaBylaws {
+  id                           String   @id @default(uuid())
+  chamaId                      String   @unique
+  chama                        Chama    @relation(fields: [chamaId], references: [id])
+  minMonthlyContribution       Float    @default(1000.0)
+  contributionDeadlineDay      Int      @default(5)
+  loanMultiplierCap            Float    @default(3.0)
+  interestRateMethod           String   @default("REDUCING_BALANCE") // REDUCING_BALANCE, STRAIGHT_LINE
+  defaultInterestRate          Float    @default(12.0)
+  gracePeriodDays              Int      @default(14)
+  lateMeetingFine              Float    @default(200.0)
+  absentMeetingFine            Float    @default(500.0)
+  lateContributionPenaltyRate  Float    @default(10.0) // Percentage or fixed
+  multiSigThreshold            Int      @default(2) // Number of required official approvals for payouts
+  requiredSignatories          Json?    // Roles required e.g. ["CHAIRPERSON", "TREASURER"]
+  shareValuation               Float    @default(100.0)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+}
+
+// ─── FINANCIAL LEDGERS & TRANSACTIONS ──────────────────────
+
+model Ledger {
+  id                String        @id @default(uuid())
+  userId            String        @unique
+  user              User          @relation(fields: [userId], references: [id])
+  chamaId           String
+  chama             Chama         @relation(fields: [chamaId], references: [id])
+  savingsBalance    Float         @default(0.0)
+  sharesBalance     Float         @default(0.0)
+  activeLoanBalance Float         @default(0.0)
+  transactions      Transaction[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  ledgerId  String
+  ledger    Ledger   @relation(fields: [ledgerId], references: [id])
+  type      String // DEPOSIT, WITHDRAWAL, LOAN_DISBURSEMENT, LOAN_REPAYMENT, DIVIDEND, FINE_PAYMENT
+  amount    Float
+  reference String?  @unique
+  createdAt DateTime @default(now())
+}
+
+model PaymentLog {
+  id        String   @id @default(uuid())
+  chamaId   String
+  chama     Chama    @relation(fields: [chamaId], references: [id])
+  gateway   String // MPESA, BANK
+  payload   Json
+  status    String // PENDING, SUCCESS, FAILED
+  createdAt DateTime @default(now())
+}
+
+model Branch {
+  id           String   @id @default(uuid())
+  name         String
+  location     String
+  vaultBalance Float    @default(0.0)
+  managerId    String?
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  name         String
+  type         String // SAVINGS, LOAN
+  interestRate Float
+  maxTerm      Int // In months
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model InventoryItem {
+  id           String   @id @default(uuid())
+  chamaId      String
+  chama        Chama    @relation(fields: [chamaId], references: [id])
+  name         String
+  serialNumber String   @unique
+  condition    String // NEW, GOOD, FAIR, POOR
+  assignedTo   String?
+  status       String   @default("AVAILABLE") // AVAILABLE, ASSIGNED, MAINTENANCE
+  value        Float
+  dateAcquired DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model KycDocument {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  idNumber  String
+  kraPin    String
+  nextOfKin String
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SupportTicket {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  subject     String
+  description String
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  userId      String
+  assignedTo  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  chamaId   String
+  chama     Chama    @relation(fields: [chamaId], references: [id])
+  receiptNo String   @unique
+  amount    Float
+  narration String?
+  type      String   @default("INBOUND") // INBOUND, OUTBOUND
+  status    String   @default("COMPLETED")
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CommunicationLog {
+  id          String    @id @default(uuid())
+  chamaId     String
+  chama       Chama     @relation(fields: [chamaId], references: [id])
+  type        String // EMAIL, SMS
+  recipientId String
+  subject     String?
+  body        String
+  status      String    @default("PENDING") // PENDING, SENT, FAILED
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// ─── IMMUTABLE SECURITY AUDIT TRAIL ────────────────────────
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  chamaId       String?
+  chama         Chama?   @relation(fields: [chamaId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  userEmail     String?
+  userRole      String?
+  ipAddress     String?
+  userAgent     String?
+  action        String // LOGIN, LOGOUT, LOAN_APPROVED, DISBURSED, SETTING_CHANGED, etc.
+  entity        String // User, Loan, Payment, ChamaBylaws
+  entityId      String
+  details       Json?
+  previousState Json?
+  newState      Json?
+  status        String   @default("SUCCESS") // SUCCESS, FAILURE, BLOCKED
+  createdAt     DateTime @default(now())
+}
+
+model OperationsTask {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  title       String
+  description String
+  assignedTo  String
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Appraisal {
+  id        String   @id @default(uuid())
+  chamaId   String
+  chama     Chama    @relation(fields: [chamaId], references: [id])
+  loanId    String
+  officerId String
+  score     Float
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  comments  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Commission {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  agentId     String
+  amount      Float
+  description String
+  status      String   @default("PENDING") // PENDING, PAID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ArrearsRecord {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  loanId      String
+  amount      Float
+  daysOverdue Int
+  status      String   @default("ACTIVE") // ACTIVE, RESOLVED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AccountLedger {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  accountName String
+  accountType String // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  balance     Float    @default(0.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model JournalVoucher {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  date        DateTime @default(now())
+  accountName String
+  debit       Float    @default(0.0)
+  credit      Float    @default(0.0)
+  narration   String?
+  postedBy    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── LOAN & MULTI-SIG ENGINE ───────────────────────────────
+
+model Loan {
+  id                String          @id @default(uuid())
+  chamaId           String
+  chama             Chama           @relation(fields: [chamaId], references: [id])
+  memberId          String
+  memberName        String
+  productName       String
+  principal         Float
+  balance           Float
+  interestRate      Float           @default(12.0)
+  duration          Int             @default(12) // months
+  interestMethod    String          @default("REDUCING_BALANCE") // REDUCING_BALANCE, STRAIGHT_LINE, AMORTIZED
+  status            String          @default("PENDING_GUARANTORS") // PENDING_GUARANTORS, PENDING_APPROVAL, APPROVED, DISBURSED, ACTIVE, PAID_OFF, IN_ARREARS, WRITTEN_OFF, REJECTED
+  applicationDate   DateTime        @default(now())
+  disbursementDate  DateTime?
+  dueDate           DateTime?
+  multiSigApprovals Json?           // Array of { officialId, role, approvedAt, signature }
+  rejectionReason   String?
+  disbursedBy       String?
+  idempotencyKey    String?         @unique
+  guarantors        LoanGuarantor[]
+  repayments        LoanRepayment[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model LoanGuarantor {
+  id               String    @id @default(uuid())
+  chamaId          String
+  chama            Chama     @relation(fields: [chamaId], references: [id])
+  loanId           String
+  loan             Loan      @relation(fields: [loanId], references: [id])
+  guarantorId      String
+  guarantorName    String
+  amountGuaranteed Float
+  status           String    @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  decisionDate     DateTime?
+  notes            String?
+  createdAt        DateTime  @default(now())
+}
+
+model LoanRepayment {
+  id               String    @id @default(uuid())
+  chamaId          String
+  chama            Chama     @relation(fields: [chamaId], references: [id])
+  loanId           String
+  loan             Loan      @relation(fields: [loanId], references: [id])
+  amount           Float
+  principalPortion Float     @default(0)
+  interestPortion  Float     @default(0)
+  dueDate          DateTime
+  paidDate         DateTime?
+  status           String    @default("PENDING") // PENDING, PAID, OVERDUE, PARTIAL
+  createdAt        DateTime  @default(now())
+}
+
+// ─── SAVINGS & SHARES ──────────────────────────────────────
+
+model SavingsAccount {
+  id            String   @id @default(uuid())
+  chamaId       String
+  chama         Chama    @relation(fields: [chamaId], references: [id])
+  memberId      String
+  memberName    String
+  productName   String
+  accountNumber String   @unique
+  balance       Float    @default(0)
+  status        String   @default("ACTIVE") // ACTIVE, DORMANT, CLOSED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ShareHolding {
+  id           String   @id @default(uuid())
+  chamaId      String
+  chama        Chama    @relation(fields: [chamaId], references: [id])
+  memberId     String
+  memberName   String
+  shareType    String   @default("ORDINARY") // ORDINARY, PREFERENCE
+  units        Int      @default(0)
+  valuePerUnit Float    @default(100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── INVESTMENTS & FIXED DEPOSITS ──────────────────────────
+
+model Investment {
+  id           String   @id @default(uuid())
+  chamaId      String
+  chama        Chama    @relation(fields: [chamaId], references: [id])
+  name         String
+  type         String // TBILL, FIXED_INCOME, PROPERTY, BOND
+  principal    Float
+  interestRate Float
+  maturityDate DateTime
+  status       String   @default("ACTIVE") // ACTIVE, MATURED, LIQUIDATED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model FixedDeposit {
+  id           String   @id @default(uuid())
+  chamaId      String
+  chama        Chama    @relation(fields: [chamaId], references: [id])
+  memberId     String
+  memberName   String
+  amount       Float
+  rate         Float
+  duration     Int // months
+  startDate    DateTime @default(now())
+  maturityDate DateTime
+  status       String   @default("ACTIVE") // ACTIVE, MATURED, TERMINATED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── WITHDRAWAL REQUESTS ───────────────────────────────────
+
+model WithdrawalRequest {
+  id          String    @id @default(uuid())
+  chamaId     String
+  chama       Chama     @relation(fields: [chamaId], references: [id])
+  memberId    String
+  memberName  String
+  accountType String // SAVINGS, SHARES, FIXED_DEPOSIT
+  amount      Float
+  fee         Float     @default(0)
+  netAmount   Float
+  reason      String?
+  requestDate DateTime  @default(now())
+  payoutDate  DateTime?
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED, PAID
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ─── HR PAYROLL ────────────────────────────────────────────
+
+model PayrollRecord {
+  id              String   @id @default(uuid())
+  chamaId         String
+  chama           Chama    @relation(fields: [chamaId], references: [id])
+  userId          String
+  employeeName    String
+  role            String
+  period          String // e.g. "2026-07"
+  basicSalary     Float
+  allowances      Float    @default(0)
+  paye            Float    @default(0)
+  nssf            Float    @default(0)
+  nhif            Float    @default(0)
+  otherDeductions Float    @default(0)
+  netPay          Float
+  status          String   @default("PENDING") // PENDING, PROCESSED, PAID
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── COMMUNICATION TEMPLATES ───────────────────────────────
+
+model MessageTemplate {
+  id        String   @id @default(uuid())
+  chamaId   String
+  chama     Chama    @relation(fields: [chamaId], references: [id])
+  name      String
+  type      String // SMS, EMAIL
+  content   String // supports {member_name}, {loan_balance}, {due_date}, {receipt_no}
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── RBAC & CONFIGURATION ─────────────────────────────────
+
+model Role {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  name        String   @unique
+  description String
+  permissions Json // array of permission strings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MemberType {
+  id                String   @id @default(uuid())
+  chamaId           String
+  chama             Chama    @relation(fields: [chamaId], references: [id])
+  name              String   @unique
+  minShares         Int      @default(0)
+  maxLoanMultiplier Float    @default(3.0)
+  benefits          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SystemConstant {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ChamaProfile {
+  id                 String   @id @default(uuid())
+  name               String
+  registrationNumber String
+  formationDate      DateTime
+  meetingFrequency   String
+  contributionAmount Float
+  lateFineAmount     Float
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ─── MEETINGS, RESOLUTIONS & DEMOCRATIC VOTING ─────────────
+
+model Meeting {
+  id          String              @id @default(uuid())
+  chamaId     String
+  chama       Chama               @relation(fields: [chamaId], references: [id])
+  title       String
+  date        DateTime
+  type        String // REGULAR, SPECIAL, AGM
+  status      String              @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  minutes     String? // Text or URL to minutes
+  attendances MeetingAttendance[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model MeetingAttendance {
+  id        String   @id @default(uuid())
+  chamaId   String
+  chama     Chama    @relation(fields: [chamaId], references: [id])
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id])
+  memberId  String
+  status    String   @default("PRESENT") // PRESENT, ABSENT, EXCUSED, LATE
+  finePaid  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DisciplinaryRecord {
+  id        String   @id @default(uuid())
+  chamaId   String
+  chama     Chama    @relation(fields: [chamaId], references: [id])
+  memberId  String
+  type      String // WARNING, FINE, SUSPENSION
+  reason    String
+  amount    Float    @default(0) // if fine
+  status    String   @default("PENDING") // PENDING, PAID, RESOLVED, WAIVED
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WelfareFund {
+  id        String         @id @default(uuid())
+  chamaId   String
+  chama     Chama          @relation(fields: [chamaId], references: [id])
+  name      String // Emergency Fund, Merry-go-round
+  balance   Float          @default(0)
+  target    Float?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  claims    WelfareClaim[]
+}
+
+model WelfareClaim {
+  id        String      @id @default(uuid())
+  chamaId   String
+  chama     Chama       @relation(fields: [chamaId], references: [id])
+  fundId    String
+  fund      WelfareFund @relation(fields: [fundId], references: [id])
+  memberId  String
+  amount    Float
+  reason    String
+  status    String      @default("PENDING") // PENDING, APPROVED, REJECTED, PAID
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model MeetingCollection {
+  id        String   @id @default(uuid())
+  chamaId   String
+  chama     Chama    @relation(fields: [chamaId], references: [id])
+  date      DateTime
+  total     Float
+  status    String   @default("DRAFT") // DRAFT, POSTED
+  details   Json // List of member collections
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  category    String // Venue, Refreshments, Bank Fees, Allowances
+  amount      Float
+  description String
+  date        DateTime
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED, PAID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notice {
+  id        String    @id @default(uuid())
+  chamaId   String
+  chama     Chama     @relation(fields: [chamaId], references: [id])
+  title     String
+  content   String
+  authorId  String
+  priority  String    @default("NORMAL") // NORMAL, HIGH, URGENT
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Resolution {
+  id          String   @id @default(uuid())
+  chamaId     String
+  chama       Chama    @relation(fields: [chamaId], references: [id])
+  title       String
+  description String
+  status      String   @default("OPEN") // OPEN, PASSED, REJECTED
+  deadline    DateTime
+  votes       Vote[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Vote {
+  id           String     @id @default(uuid())
+  chamaId      String
+  chama        Chama      @relation(fields: [chamaId], references: [id])
+  resolutionId String
+  resolution   Resolution @relation(fields: [resolutionId], references: [id])
+  memberId     String
+  user         User       @relation(fields: [memberId], references: [id])
+  vote         String // FOR, AGAINST, ABSTAIN
+  createdAt    DateTime   @default(now())
+}
+
+// ─── MULTI-SIG TREASURY DISBURSEMENTS ─────────────────────
+
+model MultiSigDisbursement {
+  id                 String    @id @default(uuid())
+  chamaId            String
+  chama              Chama     @relation(fields: [chamaId], references: [id])
+  type               String    // LOAN_DISBURSEMENT, EXPENSE_PAYOUT, WELFARE_CLAIM, DIVIDEND_PAYOUT, GENERAL_WITHDRAWAL
+  referenceId        String?   // ID of the loan, expense, or claim
+  payeeName          String
+  payeeAccount       String    // Phone number or Bank account
+  amount             Float
+  description        String
+  requiredSignatures Int       @default(2)
+  currentSignatures  Int       @default(0)
+  signatories        Json      // Array of [{ officialId, officialName, role, status: "APPROVED"|"REJECTED", pinVerified: true, approvedAt: DateTime, notes: String }]
+  status             String    @default("PENDING") // PENDING, APPROVED, REJECTED, EXECUTED
+  executedAt         DateTime?
+  executedBy         String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// ─── MERRY-GO-ROUND (ROSCA) ENGINE ─────────────────────────
+
+model MerryGoRoundCycle {
+  id                 String              @id @default(uuid())
+  chamaId            String
+  chama              Chama               @relation(fields: [chamaId], references: [id])
+  name               String              // e.g. "2026 Cycle 1"
+  contributionAmount Float               // Amount each member puts in per round
+  frequency          String              @default("MONTHLY") // WEEKLY, BI_WEEKLY, MONTHLY
+  totalPool          Float               // contributionAmount * totalMembers
+  currentRound       Int                 @default(1)
+  totalRounds        Int
+  status             String              @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED
+  startDate          DateTime            @default(now())
+  endDate            DateTime?
+  slots              MerryGoRoundSlot[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model MerryGoRoundSlot {
+  id                 String             @id @default(uuid())
+  cycleId            String
+  cycle              MerryGoRoundCycle  @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  memberId           String
+  memberName         String
+  memberPhone        String?
+  position           Int                // Turn number (1, 2, 3...)
+  payoutDate         DateTime
+  payoutAmount       Float
+  status             String             @default("PENDING") // PENDING, PAID, SKIPPED
+  paidDate           DateTime?
+  receiptNo          String?
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+// ─── YEAR-END DIVIDEND DISTRIBUTION ENGINE ─────────────────
+
+model DividendDistribution {
+  id                 String            @id @default(uuid())
+  chamaId            String
+  chama              Chama             @relation(fields: [chamaId], references: [id])
+  financialYear      String            // e.g. "2025" or "2026"
+  totalNetProfit     Float
+  dividendPoolAmount Float             // Total amount allocated for dividends
+  retainedEarnings   Float             // Retained in reserves
+  totalSharesCount   Int
+  dividendPerShare   Float             // dividendPoolAmount / totalSharesCount
+  status             String            @default("DRAFT") // DRAFT, APPROVED, DISTRIBUTED
+  approvedBy         String?
+  distributedAt      DateTime?
+  memberDividends    MemberDividend[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+model MemberDividend {
+  id                 String               @id @default(uuid())
+  distributionId     String
+  distribution       DividendDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  memberId           String
+  memberName         String
+  sharesCount        Int
+  sharePercentage    Float                // Percentage of total shares (e.g. 12.5%)
+  grossDividend      Float
+  withholdingTax     Float                @default(0) // Standard 5% or 0
+  netDividend        Float
+  status             String               @default("PENDING") // PENDING, CREDITED_TO_SAVINGS, PAID_OUT
+  creditedAt         DateTime?
+  createdAt          DateTime             @default(now())
+}
+

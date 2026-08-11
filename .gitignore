@@ -1,0 +1,9 @@
+
+*.zip
+*.tar.gz
+*.BNn1xa
+
+aws/
+.env*
+*.pem
+remote_env_taskme

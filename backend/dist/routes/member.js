@@ -1,0 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const member_1 = require("../controllers/member");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.authMiddleware);
+router.get('/me', member_1.getMyProfile);
+router.get('/me/fines', member_1.getMyFines);
+router.get('/me/savings/export-csv', member_1.exportMemberSavingsCsv);
+router.put('/me/kyc', member_1.updateKyc);
+router.put('/me/settings', member_1.updateMySettings);
+router.get('/', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), member_1.getMembers);
+router.post('/', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), member_1.createMember);
+router.put('/:id/kyc', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), member_1.updateMemberKycAdmin);
+router.post('/:id/reset-password', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), member_1.resetMemberPasswordAdmin);
+router.get('/:id/shares', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), member_1.getMemberShares);
+router.get('/:id/audit', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), member_1.getMemberAudit);
+router.post('/:id/deposit', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN', 'OFFICIAL']), member_1.memberDeposit);
+router.post('/:id/disburse', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN', 'OFFICIAL']), member_1.memberDisburse);
+router.post('/:id/penalty', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN', 'OFFICIAL']), member_1.memberPenalty);
+exports.default = router;
+//# sourceMappingURL=member.js.map

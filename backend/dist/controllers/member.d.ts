@@ -1,0 +1,16 @@
+import { Request, Response } from 'express';
+export declare const getMembers: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const createMember: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const resetMemberPasswordAdmin: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const getMyProfile: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const updateKyc: (req: Request, res: Response) => Promise<void>;
+export declare const updateMemberKycAdmin: (req: Request, res: Response) => Promise<void>;
+export declare const updateMySettings: (req: Request, res: Response) => Promise<void>;
+export declare const getMemberShares: (req: Request, res: Response) => Promise<void>;
+export declare const getMemberAudit: (req: Request, res: Response) => Promise<void>;
+export declare const memberDeposit: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const memberDisburse: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const memberPenalty: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const getMyFines: (req: Request, res: Response) => Promise<void>;
+export declare const exportMemberSavingsCsv: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+//# sourceMappingURL=member.d.ts.map

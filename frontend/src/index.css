@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #5B2C83; /* Deep Violet / Purple */
+  --color-brand-primary-dark: #1E3A8A; /* Royal Navy Blue */
+  --color-brand-accent: #FF5000; /* Bright Brand Orange */
+  --color-brand-amber: #FF9900; /* Warm Amber / Gold */
+  --color-brand-blue: #1E3A8A; /* Royal Navy Blue */
+  --color-brand-green: #10B981; /* Standard Green for positive trends */
+  --color-bg-app: #F8FAFC; /* Light grey background to contrast floating cards */
+  --color-bg-card: #FFFFFF;
+}
+
+body {
+  background-color: var(--color-bg-app);
+  color: #1F2937;
+  overflow: hidden; /* App container handles scrolling */
+}
+
+/* Elegant scrollbar for SideNav */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Scrollbar for main content area */
+.main-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.main-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+}
+.main-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+.main-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+}

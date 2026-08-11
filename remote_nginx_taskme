@@ -1,0 +1,31 @@
+server {
+    listen 80;
+    server_name chama.task-me.ke;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name chama.task-me.ke;
+
+    ssl_certificate /etc/letsencrypt/live/chama.task-me.ke/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/chama.task-me.ke/privkey.pem;
+
+    # Serve React App
+    root /home/ubuntu/taskme-chama/frontend/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API requests to backend
+    location /api/ {
+        proxy_pass http://127.0.0.1:5001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

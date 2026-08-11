@@ -1,0 +1,19 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const chamas_1 = require("../controllers/chamas");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.authMiddleware);
+router.get('/mine', chamas_1.getMyChama);
+router.get('/', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.getChamas);
+router.post('/', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN']), chamas_1.createChama);
+router.put('/:id', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.updateChama);
+router.post('/:id/merry-go-round', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.rotateMerryGoRound);
+exports.default = router;
+router.get('/:id', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.getChamaById);
+router.get('/:id/members', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.getChamaMembers);
+router.get('/:id/table-banking', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.getChamaTableBanking);
+router.post('/:id/deposit', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.chamaDeposit);
+router.post('/:id/penalty', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.chamaPenalty);
+//# sourceMappingURL=chamas.js.map
