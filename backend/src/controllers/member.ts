@@ -449,7 +449,7 @@ export const exportMemberSavingsCsv = async (req: Request, res: Response) => {
 
 export const updateMember = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, phone, role, status } = req.body;
     const user = (req as any).user;
     
@@ -474,7 +474,7 @@ export const updateMember = async (req: Request, res: Response) => {
 
 export const updateMemberStatus = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status } = req.body; // 'ACTIVE', 'SUSPENDED', etc.
 
     const updatedUser = await prisma.user.update({
@@ -491,7 +491,7 @@ export const updateMemberStatus = async (req: Request, res: Response) => {
 
 export const deleteMember = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const user = (req as any).user;
 
     const memberLedger = await prisma.ledger.findUnique({

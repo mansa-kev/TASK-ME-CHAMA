@@ -18,11 +18,11 @@ echo "----------------------------------------"
 
 # Sync Backend
 echo "Syncing Backend..."
-rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' -e "ssh -i taskme-prod-key.pem -o StrictHostKeyChecking=no" ./backend/ ubuntu@chama.task-me.ke:~/taskme-chama/backend/
+rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' --exclude '.env' --exclude '.env.*' -e "ssh -i taskme-prod-key.pem -o StrictHostKeyChecking=no" ./backend/ ubuntu@chama.task-me.ke:~/taskme-chama/backend/
 
 # Sync Frontend
 echo "Syncing Frontend..."
-rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' -e "ssh -i taskme-prod-key.pem -o StrictHostKeyChecking=no" ./frontend/ ubuntu@chama.task-me.ke:~/taskme-chama/frontend/
+rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' --exclude '.env' --exclude '.env.*' -e "ssh -i taskme-prod-key.pem -o StrictHostKeyChecking=no" ./frontend/ ubuntu@chama.task-me.ke:~/taskme-chama/frontend/
 
 # Rebuild and Restart remotely
 echo "Triggering Remote Build..."
