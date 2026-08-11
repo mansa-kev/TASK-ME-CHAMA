@@ -307,8 +307,8 @@ model AuditLog {
   id            String   @id @default(uuid())
   chamaId       String?
   chama         Chama?   @relation(fields: [chamaId], references: [id])
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
   userEmail     String?
   userRole      String?
   ipAddress     String?
