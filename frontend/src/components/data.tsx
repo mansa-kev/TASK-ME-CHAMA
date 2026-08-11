@@ -162,7 +162,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setProducts(productsData);
         setInventory(inventoryData);
         setPayments(paymentsData);
-        const mappedKyc = kycData.map((k: any) => ({
+        const actualKyc = Array.isArray(kycData) ? kycData : (kycData?.data || []);
+        const mappedKyc = actualKyc.map((k: any) => ({
           id: k.id,
           name: k.user?.name || 'Unknown User',
           type: 'Member',
@@ -181,7 +182,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setAccountsLedger(ledgersData);
         setJournalVouchers(vouchersData);
 
-        const mappedUsers = membersData.map((u: any) => ({
+        const actualMembers = Array.isArray(membersData) ? membersData : (membersData?.data || []);
+        const mappedUsers = actualMembers.map((u: any) => ({
           id: u.id,
           ledgerId: u.ledger?.id || '',
           name: u.name,
@@ -222,7 +224,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         setMembers(membersWithArrears);
 
-        const mappedChamas = chamasData.map((c: any) => {
+        const actualChamas = Array.isArray(chamasData) ? chamasData : (chamasData?.data || []);
+        const mappedChamas = actualChamas.map((c: any) => {
           return {
             id: c.id,
             name: c.name,
