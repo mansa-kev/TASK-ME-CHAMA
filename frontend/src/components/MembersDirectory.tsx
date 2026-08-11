@@ -233,14 +233,14 @@ export function MembersDirectory() {
       </div>
 
       {/* Members Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {filteredMembers.map((member) => (
           <div key={member.id} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm hover:shadow-lg border border-brand-primary/10 hover:border-brand-primary/40 transition-all duration-300 group overflow-visible flex flex-col h-full relative">
             
             {/* Header section with avatar, name, and status */}
-            <div className="p-4 border-b border-brand-primary/10 flex items-start justify-between relative bg-gradient-to-r from-brand-primary/[0.07] to-transparent rounded-t-2xl">
+            <div className="p-4 border-b border-brand-primary/20 flex items-start justify-between relative bg-gradient-to-r from-brand-primary/15 to-brand-blue/5 rounded-t-2xl">
               <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 rounded-full bg-white border border-brand-primary/20 flex items-center justify-center text-brand-primary font-bold text-base overflow-hidden shrink-0 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-white border border-brand-primary/30 flex items-center justify-center text-brand-primary font-bold text-base overflow-hidden shrink-0 shadow-sm">
                   {member.passportPhoto || member.profilePicture ? (
                     <img src={member.passportPhoto || member.profilePicture} alt={member.name} className="w-full h-full object-cover" />
                   ) : (
@@ -302,10 +302,10 @@ export function MembersDirectory() {
             </div>
 
             {/* Action Footer */}
-            <div className="mt-auto border-t border-brand-primary/10 bg-gradient-to-r from-transparent to-brand-primary/[0.03] p-2.5 rounded-b-2xl flex items-center justify-between">
+            <div className="mt-auto border-t border-brand-primary/20 bg-gradient-to-r from-brand-blue/5 to-brand-primary/10 p-2.5 rounded-b-2xl flex items-center justify-between">
               <Link 
                 to={`/dashboard/members/${member.id}`}
-                className="flex-1 flex justify-center items-center py-1.5 text-xs font-bold text-brand-blue hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-colors group/btn"
+                className="flex-1 flex justify-center items-center py-1.5 text-xs font-bold text-brand-blue hover:text-brand-primary hover:bg-white/50 rounded-lg transition-colors group/btn shadow-sm bg-white/30"
               >
                 <span>View Profile</span>
                 <ArrowRight size={14} className="ml-1 opacity-0 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
