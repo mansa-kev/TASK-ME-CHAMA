@@ -29,7 +29,7 @@ export function AccountsLedger() {
       const vs = await fetchJournalVouchers();
       setVouchers(vs || []);
       
-      const cashAcc = accs?.find((a: any) => a.accountCode === '1200' || a.name?.toLowerCase().includes('bank'));
+      const cashAcc = accs?.find((a: any) => a.accountName?.includes('1110') || a.accountName?.toLowerCase().includes('bank'));
       if (cashAcc) setSystemBalance(cashAcc.balance || 0);
     } catch (e) {
       toast.error('Failed to load ledger data');
@@ -112,7 +112,7 @@ export function AccountsLedger() {
                   <div className="p-3 pl-8 divide-y divide-gray-100">
                     {group.accounts.map(acc => (
                       <div key={acc.id} className="flex justify-between py-2 text-sm">
-                        <span className="text-gray-700">{acc.accountCode} - {acc.name}</span>
+                        <span className="text-gray-700">{acc.accountName}</span>
                         <span className="font-mono font-medium">KES {acc.balance?.toLocaleString() || 0}</span>
                       </div>
                     ))}
@@ -141,7 +141,7 @@ export function AccountsLedger() {
                   <tr key={i} className="hover:bg-gray-50">
                     <td className="p-3">{v.date}</td>
                     <td className="p-3 font-medium">{v.accountName || v.accountId}</td>
-                    <td className="p-3 text-gray-600">{v.description}</td>
+                    <td className="p-3 text-gray-600">{v.narration}</td>
                     <td className="p-3 text-right font-mono text-brand-green">{v.debit > 0 ? v.debit.toLocaleString() : '-'}</td>
                     <td className="p-3 text-right font-mono text-brand-amber">{v.credit > 0 ? v.credit.toLocaleString() : '-'}</td>
                     <td className="p-3 text-right font-mono font-bold">{(v.balance || 0).toLocaleString()}</td>
@@ -164,7 +164,7 @@ export function AccountsLedger() {
                 <div key={i} className="flex gap-2">
                   <select value={line.account} onChange={e => { const nl = [...voucherLines]; nl[i].account = e.target.value; setVoucherLines(nl); }} className="flex-1 border border-gray-200 p-2 rounded-xl">
                     <option value="">Select Account...</option>
-                    {ledgers.map(l => <option key={l.id} value={l.id}>{l.accountCode} - {l.name}</option>)}
+                    {ledgers.map(l => <option key={l.id} value={l.id}>{l.accountName}</option>)}
                   </select>
                   <input type="number" placeholder="Debit" value={line.debit} onChange={e => { const nl = [...voucherLines]; nl[i].debit = e.target.value; setVoucherLines(nl); }} className="w-32 border border-gray-200 p-2 rounded-xl text-right" />
                   <input type="number" placeholder="Credit" value={line.credit} onChange={e => { const nl = [...voucherLines]; nl[i].credit = e.target.value; setVoucherLines(nl); }} className="w-32 border border-gray-200 p-2 rounded-xl text-right" />
@@ -191,7 +191,7 @@ export function AccountsLedger() {
           <div className="p-6">
             <div className="grid grid-cols-2 gap-6 mb-8">
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <p className="text-sm font-bold text-gray-500">System Balance (1200 - Bank)</p>
+                <p className="text-sm font-bold text-gray-500">System Balance (1110 - Bank Current Account)</p>
                 <p className="text-3xl font-bold mt-2 font-mono">KES {systemBalance.toLocaleString()}</p>
               </div>
               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">

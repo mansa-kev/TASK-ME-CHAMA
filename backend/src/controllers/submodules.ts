@@ -472,12 +472,46 @@ export const createArrearsrecords = async (req: Request, res: Response) => {
 };
 export const getAccountledgers = async (req: Request, res: Response) => {
   try {
+    let chamaId = getPostChamaId(req as any);
+    if (!chamaId) {
+      const defaultChama = await prisma.chama.findFirst();
+      chamaId = defaultChama?.id;
+    }
+    const where = getQueryWhere(req as any);
     let data = await (prisma as any).accountLedger.findMany({
-      where: getQueryWhere(req as any),
+      where: where,
+      orderBy: { accountCode: 'asc' }
     });
-    if (data.length === 0) {
-      // Dummy records generation removed for production.
-      data = [];
+
+    if (data.length === 0 && chamaId) {
+      const standardAccounts = [
+        { accountName: "1110 - Bank Current Account", accountType: "ASSET", balance: 0.0 },
+        { accountName: "1120 - M-Pesa Paybill Account", accountType: "ASSET", balance: 0.0 },
+        { accountName: "1130 - Petty Cash", accountType: "ASSET", balance: 0.0 },
+        { accountName: "1210 - Member Loans Receivable", accountType: "ASSET", balance: 0.0 },
+        { accountName: "1220 - Arrears & Fines Receivable", accountType: "ASSET", balance: 0.0 },
+        { accountName: "2110 - Member Regular Savings", accountType: "LIABILITY", balance: 0.0 },
+        { accountName: "2120 - Member Welfare Fund", accountType: "LIABILITY", balance: 0.0 },
+        { accountName: "3110 - Share Capital", accountType: "EQUITY", balance: 0.0 },
+        { accountName: "3120 - Retained Earnings", accountType: "EQUITY", balance: 0.0 },
+        { accountName: "4110 - Interest Income from Loans", accountType: "REVENUE", balance: 0.0 },
+        { accountName: "4210 - Late Fees & Fines Income", accountType: "REVENUE", balance: 0.0 },
+        { accountName: "4310 - Registration Fees", accountType: "REVENUE", balance: 0.0 },
+        { accountName: "5110 - Bank & Transaction Charges", accountType: "EXPENSE", balance: 0.0 },
+        { accountName: "5210 - Operational Expenses", accountType: "EXPENSE", balance: 0.0 },
+        { accountName: "5310 - Welfare Payouts", accountType: "EXPENSE", balance: 0.0 }
+      ];
+
+      for (const acc of standardAccounts) {
+        await (prisma as any).accountLedger.create({
+          data: { ...acc, chamaId }
+        });
+      }
+
+      data = await (prisma as any).accountLedger.findMany({
+        where: where,
+        orderBy: { accountCode: 'asc' }
+      });
     }
     res.json(data);
   } catch (error) {
@@ -512,39 +546,7 @@ export const getJournalvouchers = async (req: Request, res: Response) => {
       (prisma as any).journalVoucher.count({ where })
     ]);
 
-    if (total === 0) {
-      let chamaId = getPostChamaId(req as any);
-      if (!chamaId) {
-        const defaultChama = await prisma.chama.findFirst();
-        chamaId = defaultChama?.id;
-      }
-      if (chamaId) {
-        const initialEntries = [
-          { accountName: "Bank Current Account", debit: 50000, credit: 0, narration: "Monthly member contributions deposit", postedBy: "TREASURER" },
-          { accountName: "Members Regular Savings", debit: 0, credit: 50000, narration: "Monthly member savings credit", postedBy: "TREASURER" },
-          { accountName: "Main Treasury & Cash", debit: 15000, credit: 0, narration: "Welfare pool collections", postedBy: "SECRETARY" },
-          { accountName: "Welfare & Emergency Fund", debit: 0, credit: 15000, narration: "Welfare pool allocation", postedBy: "SECRETARY" },
-        ];
-        for (const entry of initialEntries) {
-          await (prisma as any).journalVoucher.create({
-            data: {
-              ...entry,
-              chamaId,
-            }
-          });
-        }
-        
-        [data, total] = await Promise.all([
-          (prisma as any).journalVoucher.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
-          }),
-          (prisma as any).journalVoucher.count({ where })
-        ]);
-      }
-    }
+    // No longer generating mock data
     res.json({
       data,
       pagination: {
