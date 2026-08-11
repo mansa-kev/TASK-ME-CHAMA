@@ -13,7 +13,7 @@ import { DateFilterButtons } from './DateFilterButtons';
 import toast from 'react-hot-toast';
 
 export function Dashboard() {
-  const { chartData, members, chamas, supportTickets, payments } = useData();
+  const { stats, chartData, members, chamas, supportTickets, payments } = useData();
   const user = getUser();
   const navigate = useNavigate();
 
