@@ -1,6 +1,5 @@
-import { useState, useRef } from 'react';
-import { useEffect } from 'react';
-import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck, Eye, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -18,6 +17,8 @@ export function MembersDirectory() {
   }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<any>(null);
   
   // KYC Upload Modal State
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -38,12 +39,14 @@ export function MembersDirectory() {
     switch (status) {
       case 'Active':
         return <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
+      case 'Suspended':
+        return <span className="bg-brand-amber/10 text-brand-amber border border-brand-amber/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><AlertTriangle size={12} className="mr-1" /> Suspended</span>;
       case 'Dormant':
         return <span className="bg-gray-100 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit">Dormant</span>;
       case 'Defaulted':
         return <span className="bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><XCircle size={12} className="mr-1" /> Defaulted</span>;
       default:
-        return null;
+        return <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
     }
   };
 
@@ -97,6 +100,26 @@ export function MembersDirectory() {
     } catch (error) {
       toast.error('Failed to export Excel file');
       console.error(error);
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    if (!memberToDelete) return;
+    if (memberToDelete.financials.activeLoanBalance > 0 || memberToDelete.financials.savings > 0) {
+      toast.error('Cannot delete member. They have active balances. Please process withdrawal/clearance first.');
+      setMemberToDelete(null);
+      return;
+    }
+    setMembers(prev => prev.filter(m => m.id !== memberToDelete.id));
+    toast.success('Member deleted successfully');
+    setMemberToDelete(null);
+  };
+
+  const handleSuspendMember = (member: any) => {
+    if(window.confirm(`Are you sure you want to suspend ${member.name}?`)) {
+      setMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: 'Suspended' } : m));
+      toast.success(`${member.name} has been suspended.`);
+      setActiveDropdown(null);
     }
   };
   
@@ -256,8 +279,8 @@ export function MembersDirectory() {
                   <td className="p-4">
                     {getStatusBadge(member.status)}
                   </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-center space-x-2">
+                  <td className="p-4 relative">
+                    <div className="flex items-center justify-center space-x-2 relative">
                       <button 
                         onClick={() => {
                           setSelectedMember(member);
@@ -269,12 +292,29 @@ export function MembersDirectory() {
                         <UploadCloud size={18} />
                       </button>
                       <button 
-                        onClick={() => navigate(`/dashboard/members/${member.id}`)}
-                        title="View Profile"
-                        className="p-2 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
+                        onClick={() => setActiveDropdown(activeDropdown === member.id ? null : member.id)}
+                        className={`p-2 rounded-lg transition-colors relative ${activeDropdown === member.id ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10'}`}
                       >
                         <MoreVertical size={18} />
                       </button>
+
+                      {activeDropdown === member.id && (
+                        <div className="absolute right-0 top-10 mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-[100] overflow-hidden animation-fade-in text-left">
+                          <Link to={`/dashboard/members/${member.id}`} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full">
+                            <Eye size={16} className="mr-3 text-gray-400" /> View Profile
+                          </Link>
+                          <button onClick={() => { setActiveDropdown(null); toast.error('Edit feature coming soon in details module'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                            <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Details
+                          </button>
+                          <button onClick={() => handleSuspendMember(member)} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber w-full text-left">
+                            <AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member
+                          </button>
+                          <div className="border-t border-gray-100 my-1"></div>
+                          <button onClick={() => { setMemberToDelete(member); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 w-full text-left">
+                            <Trash2 size={16} className="mr-3" /> Delete Member
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -333,7 +373,7 @@ export function MembersDirectory() {
                     {member.role}
                   </span>
                 </div>
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-1 relative">
                   <button 
                     onClick={() => {
                       setSelectedMember(member);
@@ -344,11 +384,29 @@ export function MembersDirectory() {
                     <UploadCloud size={16} />
                   </button>
                   <button 
-                    onClick={() => navigate(`/dashboard/members/${member.id}`)}
-                    className="p-1.5 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
+                    onClick={() => setActiveDropdown(activeDropdown === member.id ? null : member.id)}
+                    className={`p-1.5 rounded-lg transition-colors ${activeDropdown === member.id ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10'}`}
                   >
                     <MoreVertical size={16} />
                   </button>
+                  
+                  {activeDropdown === member.id && (
+                    <div className="absolute right-0 bottom-10 mb-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-[100] overflow-hidden animation-fade-in text-left">
+                      <Link to={`/dashboard/members/${member.id}`} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full">
+                        <Eye size={16} className="mr-3 text-gray-400" /> View Profile
+                      </Link>
+                      <button onClick={() => { setActiveDropdown(null); toast.error('Edit feature coming soon in details module'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                        <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Details
+                      </button>
+                      <button onClick={() => handleSuspendMember(member)} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber w-full text-left">
+                        <AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member
+                      </button>
+                      <div className="border-t border-gray-100 my-1"></div>
+                      <button onClick={() => { setMemberToDelete(member); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 w-full text-left">
+                        <Trash2 size={16} className="mr-3" /> Delete Member
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -462,6 +520,23 @@ export function MembersDirectory() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Member Confirmation Modal */}
+      {memberToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animation-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-6 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-extrabold text-gray-800 mb-2">Delete Member?</h3>
+            <p className="text-sm text-gray-500 mb-6">Are you sure you want to remove <span className="font-bold text-gray-800">{memberToDelete.name}</span>? This action cannot be undone.</p>
+            <div className="flex space-x-3">
+              <button onClick={() => setMemberToDelete(null)} className="flex-1 border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
+              <button onClick={handleDeleteMember} className="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl hover:bg-red-700 shadow-md transition-colors">Delete</button>
+            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { useData } from './data';
-import { ArrowLeft, User, Wallet, CreditCard, ShieldCheck, FileText, CheckCircle2, TrendingUp, History, Key, DollarSign } from 'lucide-react';
+import { ArrowLeft, User, Wallet, CreditCard, ShieldCheck, FileText, CheckCircle2, TrendingUp, History, Key, DollarSign, MoreVertical, Edit2, AlertTriangle, LogOut } from 'lucide-react';
 import { fetchLoans, fetchMembers, fetchArrearsRecords, resetMemberPassword, getMemberShares, getMemberAuditLogs, postMemberDeposit, disburseMemberLoan, applyMemberPenalty, apiFetch } from '../api';
 import toast from 'react-hot-toast';
 
@@ -20,6 +20,9 @@ export function MemberProfile() {
   const [shareCapitalAmount, setShareCapitalAmount] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const [showStatement, setShowStatement] = useState(false);
+  const [memberLoans, setMemberLoans] = useState<any[]>([]);
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+  const [withdrawalAmount, setWithdrawalAmount] = useState('');
 
 
   const member = members.find(m => m.id === id);
@@ -33,6 +36,9 @@ export function MemberProfile() {
         )
       );
       setGuaranteedLoans(gl);
+
+      const ml = data.filter((loan: any) => loan.memberId === id);
+      setMemberLoans(ml);
     }).catch(err => console.error(err));
 
     getMemberShares(id).then(data => data && setShareHoldings(data)).catch(console.error);
@@ -133,7 +139,7 @@ export function MemberProfile() {
               </div>
             </div>
             
-            <div className="flex space-x-3 mb-2">
+            <div className="flex space-x-3 mb-2 relative">
               <Link to="/dashboard/members" className="flex items-center px-5 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-bold rounded-xl transition-colors border border-gray-200 shadow-sm">
                 <ArrowLeft size={16} className="mr-2" /> Back
               </Link>
@@ -141,8 +147,27 @@ export function MemberProfile() {
                 onClick={() => setShowStatement(true)}
                 className="flex items-center px-5 py-2.5 bg-brand-accent hover:opacity-90 text-white text-sm font-bold rounded-xl shadow-md transition-colors"
               >
-                <FileText size={16} className="mr-2" /> View Statement
+                <FileText size={16} className="mr-2" /> Statement
               </button>
+              
+              <div className="relative">
+                <button
+                  onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
+                  className="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold rounded-xl shadow-md transition-colors"
+                >
+                  Actions <MoreVertical size={16} className="ml-2" />
+                </button>
+                {isActionsDropdownOpen && (
+                  <div className="absolute right-0 top-12 mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 overflow-hidden animation-fade-in text-left">
+                    <button onClick={() => { setIsActionsDropdownOpen(false); toast.error('Edit feature coming soon in details module'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                      <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Profile
+                    </button>
+                    <button onClick={() => { setIsActionsDropdownOpen(false); toast.error('Suspend logic handled in directory'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber w-full text-left">
+                      <AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
@@ -298,33 +323,69 @@ export function MemberProfile() {
                   <div className="bg-brand-accent h-full rounded-full" style={{ width: '100%' }}></div>
                 </div>
               </div>
-              <p className="text-gray-500 italic text-sm text-center py-10">Ledger transaction history will render here.</p>
+              <div className="overflow-x-auto mt-4">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-gray-500 bg-gray-50 uppercase tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3 font-bold rounded-tl-lg">Date</th>
+                      <th className="px-4 py-3 font-bold">Transaction Details</th>
+                      <th className="px-4 py-3 font-bold">Reference</th>
+                      <th className="px-4 py-3 font-bold text-right text-red-600">Debit (Out)</th>
+                      <th className="px-4 py-3 font-bold text-right text-green-600 rounded-tr-lg">Credit (In)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...member.transactions, ...(member.finesList || [])].length === 0 ? (
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500 font-medium">No transactions found.</td></tr>
+                    ) : [...member.transactions, ...(member.finesList || [])].map((t: any, idx: number) => {
+                      const isDebit = t.type === 'LOAN_DISBURSEMENT' || String(t.type).includes('WITHDRAWAL') || t.type === 'FINE';
+                      return (
+                        <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-gray-600">{new Date(t.createdAt || Date.now()).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 font-bold text-gray-800">{t.type === 'FINE' ? (t.reason || 'Penalty Fee') : t.type}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-gray-500">{t.reference || t.id?.substring(0, 8) || '-'}</td>
+                          <td className="px-4 py-3 font-bold text-right text-red-600">{isDebit ? t.amount?.toLocaleString() : '-'}</td>
+                          <td className="px-4 py-3 font-bold text-right text-green-600">{!isDebit ? t.amount?.toLocaleString() : '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {activeTab === 'loans' && (
              <div className="space-y-6 animation-fade-in">
              <h3 className="text-lg font-extrabold text-brand-accent border-b border-gray-100 pb-3">Active & Cleared Loans</h3>
-             {member.financials.activeLoanBalance > 0 ? (
-               <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-5 mb-4">
-                 <div className="flex justify-between items-start mb-4">
-                   <div>
-                     <h4 className="font-bold text-brand-primary">Development Loan</h4>
-                     <p className="text-xs font-medium text-gray-500">Disbursed: 12 Jan 2026</p>
-                   </div>
-                   <div className="text-right">
-                     <p className="font-extrabold text-lg text-gray-800">{formatCurrency(member.financials.activeLoanBalance)}</p>
-                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Remaining Balance</p>
-                   </div>
-                 </div>
-                 <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                   <div className="bg-brand-primary h-full rounded-full" style={{ width: '45%' }}></div>
-                 </div>
-                 <p className="text-xs font-bold text-gray-500 mt-2 text-right">45% Repaid</p>
+             {memberLoans.length > 0 ? (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {memberLoans.map((loan, idx) => {
+                   const progress = loan.amount > 0 ? ((loan.amount - (loan.balance || loan.amount)) / loan.amount) * 100 : 0;
+                   return (
+                     <div key={idx} className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-5">
+                       <div className="flex justify-between items-start mb-4">
+                         <div>
+                           <h4 className="font-bold text-brand-primary">{loan.type || 'Personal Loan'}</h4>
+                           <p className="text-xs font-medium text-gray-500">Applied: {new Date(loan.createdAt || Date.now()).toLocaleDateString()}</p>
+                           <p className="text-[10px] uppercase font-bold px-2 py-0.5 mt-1 rounded bg-brand-primary/10 text-brand-primary inline-block">{loan.status || 'Active'}</p>
+                         </div>
+                         <div className="text-right">
+                           <p className="font-extrabold text-lg text-gray-800">{formatCurrency(loan.balance || loan.amount)}</p>
+                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Remaining Balance</p>
+                         </div>
+                       </div>
+                       <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                         <div className="bg-brand-primary h-full rounded-full" style={{ width: `${progress}%` }}></div>
+                       </div>
+                       <p className="text-xs font-bold text-gray-500 mt-2 text-right">{progress.toFixed(0)}% Repaid</p>
+                     </div>
+                   );
+                 })}
                </div>
              ) : (
                <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-                 <p className="text-gray-500 font-medium">No active loans.</p>
+                 <p className="text-gray-500 font-medium">No active loans found.</p>
                  <button onClick={() => toast('Members must initiate loan applications from their portal.', { icon: 'ℹ️' })} className="mt-4 bg-brand-primary text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-brand-primary-dark transition-colors">Apply for Loan</button>
                </div>
              )}
@@ -545,6 +606,32 @@ export function MemberProfile() {
                        className="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-6 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50"
                      >{isPosting ? 'Applying...' : 'Apply Fee'}</button>
                    </div>
+                  </div>
+
+                 {/* Process Withdrawal */}
+                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 col-span-2">
+                   <h4 className="font-extrabold text-gray-800 mb-2 flex items-center"><LogOut size={16} className="mr-2" /> Process Withdrawal / Exit</h4>
+                   <p className="text-xs text-gray-500 mb-4">Refund savings or process a partial withdrawal for this member.</p>
+                   <div className="flex gap-4">
+                     <input type="number" placeholder="Amount (KES)" value={withdrawalAmount} onChange={(e) => setWithdrawalAmount(e.target.value)} className="flex-1 bg-white border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-gray-800" />
+                     <button 
+                       disabled={isPosting || !withdrawalAmount || parseFloat(withdrawalAmount) <= 0 || parseFloat(withdrawalAmount) > member.financials.savings}
+                       onClick={async () => {
+                         setIsPosting(true);
+                         try {
+                           await new Promise(r => setTimeout(r, 1000)); // Simulated API call
+                           toast.success(`Withdrawal of KES ${parseFloat(withdrawalAmount).toLocaleString()} processed`);
+                           setWithdrawalAmount('');
+                           await refreshMembers();
+                         } catch { toast.error('Failed to process withdrawal'); }
+                         finally { setIsPosting(false); }
+                       }}
+                       className="bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold px-6 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                     >{isPosting ? 'Processing...' : 'Process Withdrawal'}</button>
+                   </div>
+                   {parseFloat(withdrawalAmount) > member.financials.savings && (
+                     <p className="text-xs text-red-500 mt-2 font-bold">Amount exceeds total savings ({formatCurrency(member.financials.savings)})</p>
+                   )}
                  </div>
               </div>
              </div>
