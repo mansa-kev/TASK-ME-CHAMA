@@ -281,7 +281,7 @@ export function ChamaProfile() {
         {activeTab === 'members' && (
           <div className="animation-fade-in space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-              <h3 className="text-base sm:text-lg font-extrabold text-brand-accent">Member Roster ({chama.stats.totalMembers})</h3>
+              <h3 className="text-base sm:text-lg font-extrabold text-brand-accent">Member Roster ({chama.stats?.totalMembers || chama.memberCount || 0})</h3>
               <button onClick={() => toast('Use the Registration module to onboard new members.')} className="text-xs sm:text-sm font-bold text-brand-blue hover:underline">
                 + Add Member
               </button>
@@ -348,7 +348,7 @@ export function ChamaProfile() {
               <>
                 <div className="flex justify-between items-center border-b border-gray-100 pb-3">
                   <h3 className="text-base sm:text-lg font-extrabold text-brand-accent">Merry-Go-Round Tracker</h3>
-                  <div className="text-xs sm:text-sm font-bold text-brand-primary">Cycle {chama.stats.cycleNumber}</div>
+                  <div className="text-xs sm:text-sm font-bold text-brand-primary">Cycle {chama.stats?.cycleNumber || 1}</div>
                 </div>
 
                 <div className="bg-brand-accent/5 p-4 sm:p-6 rounded-2xl border border-brand-accent/20">

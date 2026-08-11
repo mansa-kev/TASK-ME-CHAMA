@@ -4,17 +4,11 @@ import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { uploadFile, updateMemberKycAdmin, deleteMember, updateMemberStatus, updateMember } from '../api';
+import { useData } from './data';
 
 export function MembersDirectory() {
-  const [members, setMembers] = useState<any[]>([]);
-  const [operationsArrears, setOperationsArrears] = useState<any[]>([]);
+  const { members, setMembers, operationsArrears } = useData();
 
-  useEffect(() => {
-    import('../api').then(({ fetchMembers, fetchArrearsRecords }) => {
-      fetchMembers().then(setMembers).catch(console.error);
-      fetchArrearsRecords().then(setOperationsArrears).catch(console.error);
-    });
-  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);

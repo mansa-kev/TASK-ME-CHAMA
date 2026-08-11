@@ -174,140 +174,91 @@ export function ChamasLedger() {
             </div>
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden md:block flex-1 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#F0F7FF] border-b border-[#E1EFFE] text-[10px] uppercase tracking-widest text-[#475569] font-extrabold">
-                  <th className="p-4">Group Name</th>
-                  <th className="p-4 text-center">Members</th>
-                  <th className="p-4">Meeting Freq.</th>
-                  <th className="p-4 text-right">Total Pool Balance</th>
-                  {view === 'table-banking' ? (
-                     <th className="p-4 text-right">Active Loans</th>
-                  ) : view === 'merry-go-round' ? (
-                     <th className="p-4 text-right">Next Payout</th>
-                  ) : (
-                     <th className="p-4 text-center">Status</th>
-                  )}
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredChamas.map((chama) => (
-                  <tr key={chama.id} className="hover:bg-brand-blue/5 transition-colors">
-                    <td className="p-4">
-                      <Link to={`/dashboard/chamas/${chama.id}`} className="font-extrabold text-brand-blue hover:underline text-sm block">
-                        {chama.name}
-                      </Link>
-                      <span className="text-xs text-gray-500">{chama.id}</span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className="bg-gray-100 text-gray-600 font-bold px-2.5 py-1 rounded-full text-xs border border-gray-200">
-                        {chama.memberCount}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm font-medium text-gray-600">
-                      {chama.meetingFrequency}
-                    </td>
-                    <td className="p-4 text-right font-extrabold text-gray-800 text-sm">
-                      {formatCurrency(chama.totalPool)}
-                    </td>
-                    
-                    {view === 'table-banking' ? (
-                       <td className="p-4 text-right font-extrabold text-brand-primary text-sm">
-                         {formatCurrency(chama.activeLoans)}
-                       </td>
-                    ) : view === 'merry-go-round' ? (
-                       <td className="p-4 text-right">
-                         <span className="block text-sm font-bold text-gray-800">{new Date(chama.nextPayoutDate).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}</span>
-                         <span className="block text-[10px] text-brand-green font-bold uppercase">{chama.nextPayoutMember}</span>
-                       </td>
-                    ) : (
-                       <td className="p-4 text-center">
-                         <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center justify-center w-fit mx-auto">
-                           <ShieldCheck size={12} className="mr-1" /> Active
-                         </span>
-                       </td>
+          {/* Responsive Card Grid for Groups */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50/30">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredChamas.map((chama) => (
+                <div 
+                  key={chama.id} 
+                  className="bg-white/90 backdrop-blur-sm border border-white/40 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden group flex flex-col"
+                >
+                  <div className="p-5 flex-1">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <Link to={`/dashboard/chamas/${chama.id}`} className="font-extrabold text-brand-blue group-hover:text-blue-700 transition-colors text-lg block">
+                          {chama.name}
+                        </Link>
+                        <span className="text-xs text-gray-400 font-medium tracking-wide uppercase">{chama.id}</span>
+                      </div>
+                      {view === 'directory' && (
+                        <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase flex items-center justify-center shadow-sm">
+                          <ShieldCheck size={12} className="mr-1" /> Active
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-gray-50/80 p-3 rounded-xl border border-gray-100/50">
+                        <span className="text-[10px] text-gray-500 uppercase font-extrabold tracking-wider block mb-1">Members</span>
+                        <div className="flex items-center text-gray-800">
+                          <Users size={14} className="mr-1.5 text-gray-400" />
+                          <span className="text-base font-extrabold">{chama.memberCount}</span>
+                        </div>
+                      </div>
+                      <div className="bg-brand-blue/5 p-3 rounded-xl border border-brand-blue/10">
+                        <span className="text-[10px] text-brand-blue/70 uppercase font-extrabold tracking-wider block mb-1">Pool Balance</span>
+                        <div className="flex items-center text-brand-blue">
+                          <Wallet size={14} className="mr-1.5 opacity-70" />
+                          <span className="text-base font-extrabold">{formatCurrency(chama.totalPool)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {view === 'table-banking' && (
+                      <div className="flex justify-between items-center pt-3 border-t border-gray-100/80 mt-2">
+                        <span className="text-xs text-gray-500 uppercase font-extrabold tracking-wider flex items-center">
+                          <Banknote size={14} className="mr-1.5 text-brand-primary/70" /> Active Loans
+                        </span>
+                        <span className="text-base font-extrabold text-brand-primary">
+                          {formatCurrency(chama.activeLoans)}
+                        </span>
+                      </div>
                     )}
                     
-                    <td className="p-4 text-right">
-                       <button 
-                         onClick={() => navigate(`/dashboard/chamas/${chama.id}`)}
-                         className="text-xs font-bold text-brand-blue hover:text-blue-800 hover:underline"
-                       >
-                         Manage Group
-                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards View */}
-          <div className="md:hidden flex flex-col divide-y divide-gray-100">
-            {filteredChamas.map((chama) => (
-              <div key={chama.id} className="p-4 space-y-3 hover:bg-brand-blue/5 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Link to={`/dashboard/chamas/${chama.id}`} className="font-extrabold text-brand-blue hover:underline text-sm block">
-                      {chama.name}
-                    </Link>
-                    <span className="text-xs text-gray-500">{chama.id}</span>
+                    {view === 'merry-go-round' && (
+                      <div className="flex justify-between items-center pt-3 border-t border-gray-100/80 mt-2">
+                        <span className="text-xs text-gray-500 uppercase font-extrabold tracking-wider flex items-center">
+                          <CalendarDays size={14} className="mr-1.5 text-brand-accent/70" /> Next Payout
+                        </span>
+                        <div className="text-right">
+                          <span className="block text-sm font-extrabold text-gray-800">{new Date(chama.nextPayoutDate).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}</span>
+                          <span className="block text-[10px] text-brand-green font-extrabold uppercase">{chama.nextPayoutMember}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {view === 'directory' && (
-                    <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center justify-center">
-                      <ShieldCheck size={12} className="mr-1" /> Active
-                    </span>
-                  )}
-                </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold block mb-0.5">Members</span>
-                    <span className="text-sm font-extrabold text-gray-800">{chama.memberCount}</span>
-                  </div>
-                  <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold block mb-0.5">Pool Balance</span>
-                    <span className="text-sm font-extrabold text-gray-800">{formatCurrency(chama.totalPool)}</span>
+                  <div className="bg-gray-50/80 border-t border-gray-100 px-5 py-3 flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-400 bg-white px-2 py-1 rounded-md shadow-sm border border-gray-100">{chama.meetingFrequency}</span>
+                    <button 
+                      onClick={() => navigate(`/dashboard/chamas/${chama.id}`)}
+                      className="text-xs font-extrabold text-brand-blue hover:text-white bg-transparent hover:bg-brand-blue px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center shadow-sm"
+                    >
+                      Manage Group <ArrowRight size={14} className="ml-1.5" />
+                    </button>
                   </div>
                 </div>
-
-                {view === 'table-banking' && (
-                  <div className="flex justify-between items-center pt-1 border-t border-gray-100 mt-2">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold block">Active Loans</span>
-                    <span className="text-sm font-extrabold text-brand-primary">
-                      {formatCurrency(chama.activeLoans)}
-                    </span>
+              ))}
+              {filteredChamas.length === 0 && (
+                <div className="col-span-1 lg:col-span-2 p-12 text-center flex flex-col items-center justify-center bg-white/50 rounded-2xl border border-dashed border-gray-300">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4 shadow-sm">
+                    <Search size={24} />
                   </div>
-                )}
-                
-                {view === 'merry-go-round' && (
-                  <div className="flex justify-between items-center pt-1 border-t border-gray-100 mt-2">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold block">Next Payout</span>
-                    <div className="text-right">
-                      <span className="block text-sm font-bold text-gray-800">{new Date(chama.nextPayoutDate).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}</span>
-                      <span className="block text-[10px] text-brand-green font-bold uppercase">{chama.nextPayoutMember}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end pt-2">
-                  <button 
-                    onClick={() => navigate(`/dashboard/chamas/${chama.id}`)}
-                    className="text-xs font-bold text-brand-blue hover:text-blue-800 hover:underline"
-                  >
-                    Manage Group →
-                  </button>
+                  <h3 className="text-lg font-extrabold text-gray-800 mb-1">No groups found</h3>
+                  <p className="text-sm text-gray-500 max-w-sm mx-auto">Try adjusting your search terms or filters to find what you're looking for.</p>
                 </div>
-              </div>
-            ))}
-            {filteredChamas.length === 0 && (
-              <div className="p-8 text-center text-gray-500 text-sm">
-                No groups found.
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
