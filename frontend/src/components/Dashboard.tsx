@@ -24,9 +24,6 @@ export function Dashboard() {
           <h1 className="text-2xl font-black text-gray-900 tracking-tight mt-1">
             Welcome back, {user?.name || 'Admin'}
           </h1>
-          <p className="text-sm font-medium text-gray-500 mt-1">
-            Here is an overview of your Sacco's performance.
-          </p>
         </div>
         <div className="flex items-center gap-3">
           <DateFilterButtons activeFilter="All Time" onChange={() => {}} />
@@ -45,7 +42,7 @@ export function Dashboard() {
             </div>
           </div>
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Members</p>
-          <h3 className="text-3xl font-black text-gray-900 mt-1">{members.length || 2845}</h3>
+          <h3 className="text-3xl font-black text-gray-900 mt-1">{stats?.totalMembers?.count || 0}</h3>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
@@ -55,7 +52,7 @@ export function Dashboard() {
             </div>
           </div>
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Savings</p>
-          <h3 className="text-3xl font-black text-gray-900 mt-1">KES 12.4M</h3>
+          <h3 className="text-3xl font-black text-gray-900 mt-1">KES {(stats?.totalSavings?.amount || 0).toLocaleString()}</h3>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
@@ -65,7 +62,7 @@ export function Dashboard() {
             </div>
           </div>
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Active Loans</p>
-          <h3 className="text-3xl font-black text-gray-900 mt-1">KES 8.2M</h3>
+          <h3 className="text-3xl font-black text-gray-900 mt-1">KES {(stats?.activeLoans?.amount || 0).toLocaleString()}</h3>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
@@ -75,7 +72,7 @@ export function Dashboard() {
             </div>
           </div>
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Monthly Growth</p>
-          <h3 className="text-3xl font-black text-gray-900 mt-1">+14.5%</h3>
+          <h3 className="text-3xl font-black text-gray-900 mt-1">{(stats?.totalSavings?.growth || 0) > 0 ? '+' : ''}{stats?.totalSavings?.growth || 0}%</h3>
         </div>
       </div>
 
@@ -151,9 +148,9 @@ export function Dashboard() {
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Active', value: members.filter((m: any) => m.status === 'Active').length || 2150 },
-                    { name: 'Dormant', value: members.filter((m: any) => m.status === 'Dormant').length || 450 },
-                    { name: 'Defaulted', value: members.filter((m: any) => m.status === 'Defaulted').length || 245 }
+                    { name: 'Active', value: members.filter((m: any) => m.status === 'Active').length || 0 },
+                    { name: 'Dormant', value: members.filter((m: any) => m.status === 'Dormant').length || 0 },
+                    { name: 'Defaulted', value: members.filter((m: any) => m.status === 'Defaulted').length || 0 }
                   ]}
                   cx="50%"
                   cy="50%"
