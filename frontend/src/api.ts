@@ -39,7 +39,14 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     throw new Error(error.error || 'API Request Failed');
   }
 
-  return response.json();
+  const data = await response.json();
+  
+  // Safely unwrap paginated responses to prevent "e.map is not a function" in frontend components
+  if (data && typeof data === 'object' && 'data' in data && 'pagination' in data && Array.isArray(data.data)) {
+    return data.data;
+  }
+  
+  return data;
 };
 
 export const fetchMembers = () => apiFetch('/members');
