@@ -480,7 +480,7 @@ export const getAccountledgers = async (req: Request, res: Response) => {
     const where = getQueryWhere(req as any);
     let data = await (prisma as any).accountLedger.findMany({
       where: where,
-      orderBy: { accountCode: 'asc' }
+      orderBy: { accountName: 'asc' }
     });
 
     if (data.length === 0 && chamaId) {
@@ -510,7 +510,7 @@ export const getAccountledgers = async (req: Request, res: Response) => {
 
       data = await (prisma as any).accountLedger.findMany({
         where: where,
-        orderBy: { accountCode: 'asc' }
+        orderBy: { accountName: 'asc' }
       });
     }
     res.json(data);
