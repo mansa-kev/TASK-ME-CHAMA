@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useNavigate } from 'react-router';
 import { useData } from './data';
-import { ArrowLeft, User, Wallet, CreditCard, ShieldCheck, FileText, CheckCircle2, TrendingUp, History, Key, DollarSign, MoreVertical, Edit2, AlertTriangle, LogOut } from 'lucide-react';
-import { fetchLoans, fetchMembers, fetchArrearsRecords, resetMemberPassword, getMemberShares, getMemberAuditLogs, postMemberDeposit, disburseMemberLoan, applyMemberPenalty, apiFetch } from '../api';
+import { ArrowLeft, User, Wallet, CreditCard, ShieldCheck, FileText, CheckCircle2, TrendingUp, History, Key, DollarSign, MoreVertical, Edit2, AlertTriangle, LogOut, Trash2 } from 'lucide-react';
+import { fetchLoans, fetchMembers, fetchArrearsRecords, resetMemberPassword, getMemberShares, getMemberAuditLogs, postMemberDeposit, disburseMemberLoan, applyMemberPenalty, apiFetch, deleteMember, updateMember, updateMemberStatus } from '../api';
 import toast from 'react-hot-toast';
 
 export function MemberProfile() {
@@ -23,7 +23,9 @@ export function MemberProfile() {
   const [memberLoans, setMemberLoans] = useState<any[]>([]);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
-
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editMemberData, setEditMemberData] = useState<any>(null);
+  const navigate = useNavigate();
 
   const member = members.find(m => m.id === id);
 
@@ -113,6 +115,57 @@ export function MemberProfile() {
     return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(value);
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editMemberData) return;
+    try {
+      await updateMember(editMemberData.id, {
+        name: editMemberData.name,
+        phone: editMemberData.phone,
+        role: editMemberData.role,
+        category: editMemberData.category
+      });
+      await refreshMembers();
+      toast.success('Member details updated successfully');
+      setShowEditModal(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update member details');
+    }
+  };
+
+  const handleSuspendMember = async () => {
+    if (!member) return;
+    const newStatus = member.status === 'Suspended' ? 'Active' : 'Suspended';
+    const action = member.status === 'Suspended' ? 'activate' : 'suspend';
+    
+    if(window.confirm(`Are you sure you want to ${action} ${member.name}?`)) {
+      try {
+        await updateMemberStatus(member.id, newStatus);
+        await refreshMembers();
+        toast.success(`${member.name} has been ${newStatus.toLowerCase()}.`);
+      } catch (error: any) {
+        toast.error(`Failed to ${action} member`);
+      } finally {
+        setIsActionsDropdownOpen(false);
+      }
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    if (!member) return;
+    if (window.confirm(`Are you absolutely sure you want to delete ${member.name}? This action cannot be undone.`)) {
+      try {
+        await deleteMember(member.id);
+        toast.success('Member deleted successfully');
+        navigate('/dashboard/members');
+      } catch (error: any) {
+        toast.error(error.response?.data?.error || 'Failed to delete member. Make sure they have no active balances.');
+      } finally {
+        setIsActionsDropdownOpen(false);
+      }
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -159,11 +212,19 @@ export function MemberProfile() {
                 </button>
                 {isActionsDropdownOpen && (
                   <div className="absolute right-0 top-12 mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 overflow-hidden animation-fade-in text-left">
-                    <button onClick={() => { setIsActionsDropdownOpen(false); toast.error('Edit feature coming soon in details module'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                    <button onClick={() => { setEditMemberData(member); setShowEditModal(true); setIsActionsDropdownOpen(false); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
                       <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Profile
                     </button>
-                    <button onClick={() => { setIsActionsDropdownOpen(false); toast.error('Suspend logic handled in directory'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber w-full text-left">
-                      <AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member
+                    <button onClick={handleSuspendMember} className={`flex items-center px-4 py-2.5 text-sm font-medium w-full text-left ${member.status === 'Suspended' ? 'text-brand-green hover:bg-brand-green/5' : 'text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber'}`}>
+                      {member.status === 'Suspended' ? (
+                        <><CheckCircle2 size={16} className="mr-3 text-brand-green" /> Activate Member</>
+                      ) : (
+                        <><AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member</>
+                      )}
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button onClick={handleDeleteMember} className="flex items-center px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 w-full text-left">
+                      <Trash2 size={16} className="mr-3" /> Delete Member
                     </button>
                   </div>
                 )}
@@ -728,6 +789,63 @@ export function MemberProfile() {
                 <FileText size={18} className="mr-2" /> Download CSV
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {showEditModal && editMemberData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animation-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 text-left">
+            <h3 className="text-xl font-extrabold text-gray-800 mb-4">Edit Member Details</h3>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Name</label>
+                <input 
+                  type="text" 
+                  value={editMemberData.name} 
+                  onChange={(e) => setEditMemberData({...editMemberData, name: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Phone</label>
+                <input 
+                  type="text" 
+                  value={editMemberData.phone} 
+                  onChange={(e) => setEditMemberData({...editMemberData, phone: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Role</label>
+                <select 
+                  value={editMemberData.role} 
+                  onChange={(e) => setEditMemberData({...editMemberData, role: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none"
+                >
+                  <option value="MEMBER">Member</option>
+                  <option value="OFFICIAL">Official</option>
+                  <option value="CHAMA_ADMIN">Chama Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Category</label>
+                <select 
+                  value={editMemberData.category} 
+                  onChange={(e) => setEditMemberData({...editMemberData, category: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none"
+                >
+                  <option value="Individual">Individual</option>
+                  <option value="Corporate">Corporate</option>
+                  <option value="Joint">Joint</option>
+                </select>
+              </div>
+              <div className="flex space-x-3 mt-6 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 bg-brand-primary text-white font-bold py-2.5 rounded-xl hover:bg-brand-primary-dark shadow-md transition-colors">Save Changes</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

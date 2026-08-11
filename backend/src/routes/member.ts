@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMembers, createMember, getMyProfile, getMyFines, updateKyc, updateMemberKycAdmin, updateMySettings, resetMemberPasswordAdmin, getMemberShares, getMemberAudit, memberDeposit, memberDisburse, memberPenalty, exportMemberSavingsCsv } from '../controllers/member';
+import { getMembers, createMember, getMyProfile, getMyFines, updateKyc, updateMemberKycAdmin, updateMySettings, resetMemberPasswordAdmin, getMemberShares, getMemberAudit, memberDeposit, memberDisburse, memberPenalty, exportMemberSavingsCsv, updateMember, updateMemberStatus, deleteMember } from '../controllers/member';
 import { authMiddleware, requireRole } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -13,6 +13,9 @@ router.put('/me/kyc', updateKyc);
 router.put('/me/settings', updateMySettings);
 router.get('/', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), getMembers);
 router.post('/', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), createMember);
+router.put('/:id', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), updateMember);
+router.put('/:id/status', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), updateMemberStatus);
+router.delete('/:id', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), deleteMember);
 router.put('/:id/kyc', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), updateMemberKycAdmin);
 router.post('/:id/reset-password', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), resetMemberPasswordAdmin);
 
@@ -23,4 +26,3 @@ router.post('/:id/disburse', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN', 'OFF
 router.post('/:id/penalty', requireRole(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN', 'OFFICIAL']), memberPenalty);
 
 export default router;
-

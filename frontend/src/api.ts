@@ -50,6 +50,9 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
 };
 
 export const fetchMembers = () => apiFetch('/members');
+export const updateMember = (id: string, data: any) => apiFetch(`/members/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const updateMemberStatus = (id: string, status: string) => apiFetch(`/members/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+export const deleteMember = (id: string) => apiFetch(`/members/${id}`, { method: 'DELETE' });
 export const createMember = (data: any) => apiFetch('/members', { method: 'POST', body: JSON.stringify(data) });
 export const updateMemberKycAdmin = (id: string, data: any) => apiFetch(`/members/${id}/kyc`, { method: 'PUT', body: JSON.stringify(data) });
 export const resetMemberPassword = (id: string) => apiFetch(`/members/${id}/reset-password`, { method: 'POST' });

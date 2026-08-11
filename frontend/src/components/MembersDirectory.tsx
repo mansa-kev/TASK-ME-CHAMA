@@ -3,7 +3,7 @@ import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XC
 import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { uploadFile, updateMemberKycAdmin } from '../api';
+import { uploadFile, updateMemberKycAdmin, deleteMember, updateMemberStatus, updateMember } from '../api';
 
 export function MembersDirectory() {
   const [members, setMembers] = useState<any[]>([]);
@@ -105,21 +105,31 @@ export function MembersDirectory() {
 
   const handleDeleteMember = async () => {
     if (!memberToDelete) return;
-    if (memberToDelete.financials.activeLoanBalance > 0 || memberToDelete.financials.savings > 0) {
-      toast.error('Cannot delete member. They have active balances. Please process withdrawal/clearance first.');
+    try {
+      await deleteMember(memberToDelete.id);
+      setMembers(prev => prev.filter(m => m.id !== memberToDelete.id));
+      toast.success('Member deleted successfully');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete member');
+    } finally {
       setMemberToDelete(null);
-      return;
     }
-    setMembers(prev => prev.filter(m => m.id !== memberToDelete.id));
-    toast.success('Member deleted successfully');
-    setMemberToDelete(null);
   };
 
-  const handleSuspendMember = (member: any) => {
-    if(window.confirm(`Are you sure you want to suspend ${member.name}?`)) {
-      setMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: 'Suspended' } : m));
-      toast.success(`${member.name} has been suspended.`);
-      setActiveDropdown(null);
+  const handleSuspendMember = async (member: any) => {
+    const newStatus = member.status === 'Suspended' ? 'Active' : 'Suspended';
+    const action = member.status === 'Suspended' ? 'activate' : 'suspend';
+    
+    if(window.confirm(`Are you sure you want to ${action} ${member.name}?`)) {
+      try {
+        await updateMemberStatus(member.id, newStatus);
+        setMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: newStatus } : m));
+        toast.success(`${member.name} has been ${newStatus.toLowerCase()}.`);
+      } catch (error: any) {
+        toast.error(`Failed to ${action} member`);
+      } finally {
+        setActiveDropdown(null);
+      }
     }
   };
   
@@ -156,6 +166,28 @@ export function MembersDirectory() {
       toast.error(error.message || 'Failed to upload document');
     } finally {
       setIsUploading(false);
+    }
+  };
+  
+  // Edit Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editMemberData, setEditMemberData] = useState<any>(null);
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editMemberData) return;
+    try {
+      const updated = await updateMember(editMemberData.id, {
+        name: editMemberData.name,
+        phone: editMemberData.phone,
+        role: editMemberData.role,
+        category: editMemberData.category
+      });
+      setMembers(prev => prev.map(m => m.id === editMemberData.id ? { ...m, ...updated } : m));
+      toast.success('Member details updated successfully');
+      setShowEditModal(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update member details');
     }
   };
 
@@ -281,6 +313,13 @@ export function MembersDirectory() {
                   </td>
                   <td className="p-4 relative">
                     <div className="flex items-center justify-center space-x-2 relative">
+                      <Link 
+                        to={`/dashboard/members/${member.id}`}
+                        title="View Profile"
+                        className="p-2 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
+                      >
+                        <Eye size={18} />
+                      </Link>
                       <button 
                         onClick={() => {
                           setSelectedMember(member);
@@ -300,14 +339,15 @@ export function MembersDirectory() {
 
                       {activeDropdown === member.id && (
                         <div className="absolute right-0 top-10 mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-[100] overflow-hidden animation-fade-in text-left">
-                          <Link to={`/dashboard/members/${member.id}`} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full">
-                            <Eye size={16} className="mr-3 text-gray-400" /> View Profile
-                          </Link>
-                          <button onClick={() => { setActiveDropdown(null); toast.error('Edit feature coming soon in details module'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                          <button onClick={() => { setEditMemberData(member); setShowEditModal(true); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
                             <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Details
                           </button>
-                          <button onClick={() => handleSuspendMember(member)} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber w-full text-left">
-                            <AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member
+                          <button onClick={() => handleSuspendMember(member)} className={`flex items-center px-4 py-2.5 text-sm font-medium w-full text-left ${member.status === 'Suspended' ? 'text-brand-green hover:bg-brand-green/5' : 'text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber'}`}>
+                            {member.status === 'Suspended' ? (
+                              <><CheckCircle2 size={16} className="mr-3 text-brand-green" /> Activate Member</>
+                            ) : (
+                              <><AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member</>
+                            )}
                           </button>
                           <div className="border-t border-gray-100 my-1"></div>
                           <button onClick={() => { setMemberToDelete(member); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 w-full text-left">
@@ -374,6 +414,13 @@ export function MembersDirectory() {
                   </span>
                 </div>
                 <div className="flex items-center space-x-1 relative">
+                  <Link 
+                    to={`/dashboard/members/${member.id}`}
+                    title="View Profile"
+                    className="p-1.5 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
+                  >
+                    <Eye size={16} />
+                  </Link>
                   <button 
                     onClick={() => {
                       setSelectedMember(member);
@@ -392,14 +439,15 @@ export function MembersDirectory() {
                   
                   {activeDropdown === member.id && (
                     <div className="absolute right-0 bottom-10 mb-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-[100] overflow-hidden animation-fade-in text-left">
-                      <Link to={`/dashboard/members/${member.id}`} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full">
-                        <Eye size={16} className="mr-3 text-gray-400" /> View Profile
-                      </Link>
-                      <button onClick={() => { setActiveDropdown(null); toast.error('Edit feature coming soon in details module'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                      <button onClick={() => { setEditMemberData(member); setShowEditModal(true); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
                         <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Details
                       </button>
-                      <button onClick={() => handleSuspendMember(member)} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber w-full text-left">
-                        <AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member
+                      <button onClick={() => handleSuspendMember(member)} className={`flex items-center px-4 py-2.5 text-sm font-medium w-full text-left ${member.status === 'Suspended' ? 'text-brand-green hover:bg-brand-green/5' : 'text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber'}`}>
+                        {member.status === 'Suspended' ? (
+                          <><CheckCircle2 size={16} className="mr-3 text-brand-green" /> Activate Member</>
+                        ) : (
+                          <><AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member</>
+                        )}
                       </button>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button onClick={() => { setMemberToDelete(member); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 w-full text-left">
@@ -537,6 +585,63 @@ export function MembersDirectory() {
               <button onClick={() => setMemberToDelete(null)} className="flex-1 border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
               <button onClick={handleDeleteMember} className="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl hover:bg-red-700 shadow-md transition-colors">Delete</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {showEditModal && editMemberData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animation-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden p-6 text-left">
+            <h3 className="text-xl font-extrabold text-gray-800 mb-4">Edit Member Details</h3>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Name</label>
+                <input 
+                  type="text" 
+                  value={editMemberData.name} 
+                  onChange={(e) => setEditMemberData({...editMemberData, name: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Phone</label>
+                <input 
+                  type="text" 
+                  value={editMemberData.phone} 
+                  onChange={(e) => setEditMemberData({...editMemberData, phone: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Role</label>
+                <select 
+                  value={editMemberData.role} 
+                  onChange={(e) => setEditMemberData({...editMemberData, role: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none"
+                >
+                  <option value="MEMBER">Member</option>
+                  <option value="OFFICIAL">Official</option>
+                  <option value="CHAMA_ADMIN">Chama Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 uppercase">Category</label>
+                <select 
+                  value={editMemberData.category} 
+                  onChange={(e) => setEditMemberData({...editMemberData, category: e.target.value})} 
+                  className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none"
+                >
+                  <option value="Individual">Individual</option>
+                  <option value="Corporate">Corporate</option>
+                  <option value="Joint">Joint</option>
+                </select>
+              </div>
+              <div className="flex space-x-3 mt-6 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 bg-brand-primary text-white font-bold py-2.5 rounded-xl hover:bg-brand-primary-dark shadow-md transition-colors">Save Changes</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

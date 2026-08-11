@@ -447,3 +447,80 @@ export const exportMemberSavingsCsv = async (req: Request, res: Response) => {
   }
 };
 
+export const updateMember = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, role, status } = req.body;
+    const user = (req as any).user;
+    
+    // Additional authorization checks can be added here if needed
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        phone,
+        role,
+        ...(status && { status })
+      }
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Update member error:', error);
+    res.status(500).json({ error: 'Failed to update member' });
+  }
+};
+
+export const updateMemberStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // 'ACTIVE', 'SUSPENDED', etc.
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { status }
+    });
+
+    res.json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.error('Update member status error:', error);
+    res.status(500).json({ error: 'Failed to update member status' });
+  }
+};
+
+export const deleteMember = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+
+    const memberLedger = await prisma.ledger.findUnique({
+      where: { userId: id }
+    });
+
+    if (memberLedger) {
+      if (memberLedger.activeLoanBalance > 0 || memberLedger.savingsBalance > 0 || memberLedger.sharesBalance > 0) {
+        return res.status(400).json({ 
+          error: 'Cannot delete member with active balances. Please clear savings, shares, and loans first.' 
+        });
+      }
+    }
+
+    // Wrap deletions in a transaction to handle foreign key constraints manually since onDelete: Cascade isn't set
+    await prisma.$transaction(async (tx) => {
+      // Delete KycDocument if exists
+      await tx.kycDocument.deleteMany({ where: { userId: id } });
+      
+      // Delete Ledger if exists
+      await tx.ledger.deleteMany({ where: { userId: id } });
+      
+      // Finally delete the user
+      await tx.user.delete({ where: { id } });
+    });
+
+    res.json({ success: true, message: 'Member deleted successfully' });
+  } catch (error) {
+    console.error('Delete member error:', error);
+    res.status(500).json({ error: 'Failed to delete member' });
+  }
+};
