@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck, Eye, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck, Eye, Edit2, Trash2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -232,207 +232,110 @@ export function MembersDirectory() {
         </div>
       </div>
 
-      {/* Members Table / Mobile Cards */}
-      <div className="bg-white rounded-xl shadow-sm border border-brand-primary/20 overflow-hidden">
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500 font-extrabold">
-                <th className="p-4">Member Info</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Role</th>
-                <th className="p-4">Total Savings</th>
-                <th className="p-4">Active Loan</th>
-                <th className="p-4">Fines/Arrears</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-brand-primary/5 transition-colors group">
-                  <td className="p-4">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue font-bold text-sm mr-3 overflow-hidden shrink-0">
-                        {member.passportPhoto || member.profilePicture ? (
-                          <img src={member.passportPhoto || member.profilePicture} alt={member.name} className="w-full h-full object-cover" />
-                        ) : (
-                          member.name.charAt(0)
-                        )}
-                      </div>
-                      <div>
-                        <Link to={`/dashboard/members/${member.id}`} className="font-extrabold text-brand-blue hover:underline text-sm flex items-center">
-                          {member.name}
-                          {member.hasArrears && (
-                            <span className="ml-2 inline-flex items-center text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold uppercase">
-                              <ShieldAlert size={10} className="mr-1" /> Arrears
-                            </span>
-                          )}
-                        </Link>
-                        <span className="text-xs text-gray-500 font-medium">{member.id} • {member.phone}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                      {member.category}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-md ${member.role !== 'Member' ? 'bg-brand-accent/10 text-brand-accent-light border border-brand-accent/20' : 'bg-gray-100 text-gray-600'}`}>
-                      {member.role}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="font-extrabold text-gray-800">{formatCurrency(member.financials.savings)}</div>
-                    <div className="text-[10px] text-gray-500 font-bold uppercase">Shares: {formatCurrency(member.financials.shares)}</div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`font-extrabold ${member.financials.activeLoanBalance > 0 ? 'text-brand-primary' : 'text-gray-400'}`}>
-                      {formatCurrency(member.financials.activeLoanBalance)}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    {member.hasArrears || member.financials.fines > 0 ? (
-                      <span className="flex items-center text-red-600 font-bold text-sm">
-                        <ShieldAlert size={14} className="mr-1" /> {formatCurrency(member.totalArrears > 0 ? member.totalArrears : member.financials.fines)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 font-bold">-</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    {getStatusBadge(member.status)}
-                  </td>
-                  <td className="p-4 relative">
-                    <div className="flex items-center justify-center space-x-2 relative">
-                      <Link 
-                        to={`/dashboard/members/${member.id}`}
-                        title="View Profile"
-                        className="p-2 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
-                      >
-                        <Eye size={18} />
-                      </Link>
-                      <button 
-                        onClick={() => {
-                          setSelectedMember(member);
-                          setShowUploadModal(true);
-                        }}
-                        title="Upload KYC Documents"
-                        className="p-2 text-gray-400 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition-colors"
-                      >
-                        <UploadCloud size={18} />
-                      </button>
-                      <button 
-                        onClick={() => setActiveDropdown(activeDropdown === member.id ? null : member.id)}
-                        className={`p-2 rounded-lg transition-colors relative ${activeDropdown === member.id ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10'}`}
-                      >
-                        <MoreVertical size={18} />
-                      </button>
-
-                      {activeDropdown === member.id && (
-                        <div className="absolute right-0 top-10 mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-[100] overflow-hidden animation-fade-in text-left">
-                          <button onClick={() => { setEditMemberData(member); setShowEditModal(true); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
-                            <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Details
-                          </button>
-                          <button onClick={() => handleSuspendMember(member)} className={`flex items-center px-4 py-2.5 text-sm font-medium w-full text-left ${member.status === 'Suspended' ? 'text-brand-green hover:bg-brand-green/5' : 'text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber'}`}>
-                            {member.status === 'Suspended' ? (
-                              <><CheckCircle2 size={16} className="mr-3 text-brand-green" /> Activate Member</>
-                            ) : (
-                              <><AlertTriangle size={16} className="mr-3 text-gray-400" /> Suspend Member</>
-                            )}
-                          </button>
-                          <div className="border-t border-gray-100 my-1"></div>
-                          <button onClick={() => { setMemberToDelete(member); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 w-full text-left">
-                            <Trash2 size={16} className="mr-3" /> Delete Member
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden flex flex-col divide-y divide-gray-100">
-          {filteredMembers.map((member) => (
-            <div key={member.id} className="p-4 space-y-3 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue font-bold text-sm overflow-hidden shrink-0">
-                    {member.passportPhoto || member.profilePicture ? (
-                      <img src={member.passportPhoto || member.profilePicture} alt={member.name} className="w-full h-full object-cover" />
-                    ) : (
-                      member.name.charAt(0)
-                    )}
-                  </div>
-                  <div>
-                    <Link to={`/dashboard/members/${member.id}`} className="font-extrabold text-brand-blue hover:underline text-sm flex items-center">
-                      {member.name}
-                      {member.hasArrears && (
-                        <span className="ml-2 inline-flex items-center text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold uppercase">
-                          <ShieldAlert size={10} className="mr-1" /> Arrears
-                        </span>
-                      )}
-                    </Link>
-                    <div className="text-xs text-gray-500 font-medium">{member.id} • {member.phone}</div>
-                  </div>
+      {/* Members Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredMembers.map((member) => (
+          <div key={member.id} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-brand-primary/30 transition-all duration-300 group overflow-visible flex flex-col h-full relative">
+            
+            {/* Header section with avatar, name, and status */}
+            <div className="p-5 border-b border-gray-50 flex items-start justify-between relative">
+              <div className="flex items-start space-x-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary/10 to-brand-blue/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary font-bold text-lg overflow-hidden shrink-0 shadow-inner">
+                  {member.passportPhoto || member.profilePicture ? (
+                    <img src={member.passportPhoto || member.profilePicture} alt={member.name} className="w-full h-full object-cover" />
+                  ) : (
+                    member.name.charAt(0)
+                  )}
                 </div>
-                {getStatusBadge(member.status)}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                  <span className="text-[10px] text-gray-500 uppercase font-bold block mb-0.5">Savings</span>
-                  <span className="text-sm font-extrabold text-gray-800">{formatCurrency(member.financials.savings)}</span>
-                </div>
-                <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                  <span className="text-[10px] text-gray-500 uppercase font-bold block mb-0.5">Loan Balance</span>
-                  <span className={`text-sm font-extrabold ${member.financials.activeLoanBalance > 0 ? 'text-brand-primary' : 'text-gray-400'}`}>
-                    {formatCurrency(member.financials.activeLoanBalance)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <div className="flex gap-2">
-                  <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                    {member.category}
-                  </span>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${member.role !== 'Member' ? 'bg-brand-accent/10 text-brand-accent-light border border-brand-accent/20' : 'bg-gray-100 text-gray-600'}`}>
-                    {member.role}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1 relative">
-                  <Link 
-                    to={`/dashboard/members/${member.id}`}
-                    title="View Profile"
-                    className="p-1.5 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
-                  >
-                    <Eye size={16} />
+                <div>
+                  <Link to={`/dashboard/members/${member.id}`} className="font-extrabold text-brand-blue hover:text-brand-primary transition-colors text-base flex items-center gap-1 group-hover:underline">
+                    {member.name}
                   </Link>
+                  <div className="text-xs text-gray-500 font-medium mt-0.5">{member.id}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{member.phone}</div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                {getStatusBadge(member.status)}
+                {member.hasArrears && (
+                  <span className="inline-flex items-center text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold uppercase">
+                    <ShieldAlert size={10} className="mr-1" /> Arrears
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Tags section */}
+            <div className="px-5 py-3 flex gap-2 flex-wrap">
+              <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200">
+                {member.category}
+              </span>
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${member.role !== 'Member' ? 'bg-brand-accent/10 text-brand-accent-light border-brand-accent/20' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                {member.role}
+              </span>
+            </div>
+
+            {/* Financials Grid */}
+            <div className="px-5 pb-5 grid grid-cols-2 gap-3 flex-grow">
+              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/50 flex flex-col justify-center">
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Savings</span>
+                <span className="text-base font-extrabold text-gray-800">{formatCurrency(member.financials.savings)}</span>
+                <span className="text-[9px] text-gray-400 font-bold uppercase mt-1">Shares: {formatCurrency(member.financials.shares)}</span>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/50 flex flex-col justify-center">
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Active Loan</span>
+                <span className={`text-base font-extrabold ${member.financials.activeLoanBalance > 0 ? 'text-brand-primary' : 'text-gray-400'}`}>
+                  {formatCurrency(member.financials.activeLoanBalance)}
+                </span>
+                <div className="mt-1 flex items-center">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">Fines:</span>
+                  {(member.hasArrears || member.financials.fines > 0) ? (
+                    <span className="text-[10px] flex items-center text-red-500 font-bold">
+                      {formatCurrency(member.totalArrears > 0 ? member.totalArrears : member.financials.fines)}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 font-bold">-</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Footer */}
+            <div className="mt-auto border-t border-gray-100 bg-gray-50/50 p-3 rounded-b-2xl flex items-center justify-between">
+              <Link 
+                to={`/dashboard/members/${member.id}`}
+                className="flex-1 flex justify-center items-center py-2 text-sm font-bold text-brand-blue hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-colors group/btn"
+              >
+                <span>View Profile</span>
+                <ArrowRight size={14} className="ml-1 opacity-0 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
+              </Link>
+              
+              <div className="flex items-center space-x-1 relative border-l border-gray-200 pl-2">
+                <button 
+                  onClick={() => {
+                    setSelectedMember(member);
+                    setShowUploadModal(true);
+                  }}
+                  title="Upload KYC"
+                  className="p-2 text-gray-400 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition-colors"
+                >
+                  <UploadCloud size={16} />
+                </button>
+                <div className="relative">
                   <button 
-                    onClick={() => {
-                      setSelectedMember(member);
-                      setShowUploadModal(true);
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setActiveDropdown(activeDropdown === member.id ? null : member.id);
                     }}
-                    className="p-1.5 text-gray-400 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition-colors"
-                  >
-                    <UploadCloud size={16} />
-                  </button>
-                  <button 
-                    onClick={() => setActiveDropdown(activeDropdown === member.id ? null : member.id)}
-                    className={`p-1.5 rounded-lg transition-colors ${activeDropdown === member.id ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10'}`}
+                    className={`p-2 rounded-lg transition-colors ${activeDropdown === member.id ? 'bg-brand-primary text-white shadow-sm' : 'text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10'}`}
                   >
                     <MoreVertical size={16} />
                   </button>
                   
                   {activeDropdown === member.id && (
-                    <div className="absolute right-0 bottom-10 mb-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-[100] overflow-hidden animation-fade-in text-left">
+                    <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-48 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 py-1 z-[99] overflow-hidden animation-fade-in text-left">
                       <button onClick={() => { setEditMemberData(member); setShowEditModal(true); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
                         <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Details
                       </button>
@@ -452,13 +355,17 @@ export function MembersDirectory() {
                 </div>
               </div>
             </div>
-          ))}
-          {filteredMembers.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-              No members found matching your search and category filter.
+          </div>
+        ))}
+        {filteredMembers.length === 0 && (
+          <div className="col-span-full p-12 text-center text-gray-500 bg-white/50 border border-gray-200/50 rounded-2xl border-dashed">
+            <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+              <Search size={24} />
             </div>
-          )}
-        </div>
+            <h3 className="text-lg font-bold text-gray-700 mb-1">No Members Found</h3>
+            <p className="text-sm">Try adjusting your search or category filter.</p>
+          </div>
+        )}
       </div>
       
       {/* Upload KYC Modal (Admin Override) */}
