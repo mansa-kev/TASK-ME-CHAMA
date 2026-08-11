@@ -27,7 +27,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       if (redisClient.isOpen) {
         const cachedData = await redisClient.get(cacheKey);
         if (cachedData) {
-          const parsed = JSON.parse(cachedData);
+          const parsed = JSON.parse(cachedData as string);
           cachedStatus = parsed.status;
           cachedChamaId = parsed.chamaId;
           cachedRole = parsed.role;
