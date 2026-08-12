@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { getUser, fetchBranches } from '../api';
 import { useNavigate } from 'react-router';
 import { QuickSearch } from './QuickSearch';
+import { useData } from './data';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -15,7 +16,7 @@ export function Header({ toggleSidebar }: HeaderProps) {
   const [branchOpen, setBranchOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState('All Branches');
+  const { selectedBranchId, setSelectedBranchId } = useData();
   const navigate = useNavigate();
   const user = getUser();
   const userName = user?.name || 'User';
@@ -109,7 +110,9 @@ export function Header({ toggleSidebar }: HeaderProps) {
                 className="flex items-center space-x-1 sm:space-x-1.5 bg-black/25 hover:bg-black/35 text-white px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-white/10 transition-colors text-xs font-bold"
               >
                 <MapPin size={13} className="text-brand-accent shrink-0" />
-                <span className="truncate max-w-[80px] sm:max-w-[120px]">{selectedBranch}</span>
+                <span className="truncate max-w-[80px] sm:max-w-[120px]">
+                  {selectedBranchId === 'All Branches' ? 'All Branches' : (branches.find(b => b.id === selectedBranchId)?.name || branches.find(b => b.id === selectedBranchId)?.branchName || 'Unknown Branch')}
+                </span>
                 <ChevronDown size={12} className="opacity-70 shrink-0" />
               </button>
 
@@ -118,16 +121,16 @@ export function Header({ toggleSidebar }: HeaderProps) {
                   <div className="fixed inset-0 z-40" onClick={() => setBranchOpen(false)}></div>
                   <div className="absolute top-full right-0 sm:left-0 mt-2 w-48 bg-white rounded-xl shadow-xl py-1.5 z-50 border border-gray-100 text-gray-800">
                     <button 
-                      onClick={() => { setSelectedBranch('All Branches'); setBranchOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 font-bold transition-colors ${selectedBranch === 'All Branches' ? 'text-brand-primary bg-gray-50' : 'text-gray-700'}`}
+                      onClick={() => { setSelectedBranchId('All Branches'); setBranchOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 font-bold transition-colors ${selectedBranchId === 'All Branches' ? 'text-brand-primary bg-gray-50' : 'text-gray-700'}`}
                     >
                       All Branches
                     </button>
                     {branches.map((b, i) => (
                       <button 
                         key={i}
-                        onClick={() => { setSelectedBranch(b.name || b.branchName); setBranchOpen(false); }}
-                        className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 font-bold transition-colors ${selectedBranch === (b.name || b.branchName) ? 'text-brand-primary bg-gray-50' : 'text-gray-700'}`}
+                        onClick={() => { setSelectedBranchId(b.id); setBranchOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 font-bold transition-colors ${selectedBranchId === b.id ? 'text-brand-primary bg-gray-50' : 'text-gray-700'}`}
                       >
                         {b.name || b.branchName}
                       </button>

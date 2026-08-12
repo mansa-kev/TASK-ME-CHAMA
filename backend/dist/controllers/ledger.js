@@ -9,17 +9,60 @@ const getLedgers = async (req, res) => {
         if (!dbUser?.chamaId && user.role !== 'TCM_SUPER_ADMIN') {
             return res.status(403).json({ error: 'User is not assigned to a Chama' });
         }
-        const ledgers = await prisma_1.prisma.ledger.findMany({
-            where: user.role === 'TCM_SUPER_ADMIN' ? {} : { chamaId: dbUser?.chamaId },
-            include: { user: { select: { name: true, email: true } }, transactions: true }
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const whereClause = user.role === 'TCM_SUPER_ADMIN' ? {} : { chamaId: dbUser?.chamaId };
+        const [ledgers, total] = await Promise.all([
+            prisma_1.prisma.ledger.findMany({
+                where: whereClause,
+                include: { user: { select: { name: true, email: true } }, transactions: true },
+                skip,
+                take: limit
+            }),
+            prisma_1.prisma.ledger.count({ where: whereClause })
+        ]);
+        res.json({
+            data: ledgers,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
         });
-        res.json(ledgers);
     }
     catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 exports.getLedgers = getLedgers;
+const postJournalEntry = async (tx, chamaId, accountName, debit, credit, narration) => {
+    const account = await tx.accountLedger.findFirst({ where: { chamaId, accountName } });
+    if (!account)
+        return;
+    let balanceChange = 0;
+    if (account.accountType === 'ASSET' || account.accountType === 'EXPENSE') {
+        balanceChange = debit - credit;
+    }
+    else {
+        balanceChange = credit - debit;
+    }
+    await tx.accountLedger.update({
+        where: { id: account.id },
+        data: { balance: { increment: balanceChange } }
+    });
+    await tx.journalVoucher.create({
+        data: {
+            chamaId,
+            accountName: account.accountName,
+            debit,
+            credit,
+            narration,
+            postedBy: 'SYSTEM'
+        }
+    });
+};
 const postTransaction = async (req, res) => {
     try {
         const { ledgerId, type, amount, reference } = req.body;
@@ -42,30 +85,40 @@ const postTransaction = async (req, res) => {
                     where: { id: ledgerId },
                     data: { savingsBalance: { increment: amount } }
                 });
+                await postJournalEntry(tx, ledger.chamaId, "1110 - Bank Current Account", amount, 0, `Member Savings Deposit - ${reference}`);
+                await postJournalEntry(tx, ledger.chamaId, "2110 - Member Regular Savings", 0, amount, `Member Savings Deposit - ${reference}`);
             }
             else if (type === 'WITHDRAWAL') {
                 updatedLedger = await tx.ledger.update({
                     where: { id: ledgerId },
                     data: { savingsBalance: { decrement: amount } }
                 });
+                await postJournalEntry(tx, ledger.chamaId, "2110 - Member Regular Savings", amount, 0, `Member Savings Withdrawal - ${reference}`);
+                await postJournalEntry(tx, ledger.chamaId, "1110 - Bank Current Account", 0, amount, `Member Savings Withdrawal - ${reference}`);
             }
             else if (type === 'LOAN_DISBURSEMENT') {
                 updatedLedger = await tx.ledger.update({
                     where: { id: ledgerId },
                     data: { activeLoanBalance: { increment: amount } }
                 });
+                await postJournalEntry(tx, ledger.chamaId, "1210 - Member Loans Receivable", amount, 0, `Loan Disbursement - ${reference}`);
+                await postJournalEntry(tx, ledger.chamaId, "1110 - Bank Current Account", 0, amount, `Loan Disbursement - ${reference}`);
             }
             else if (type === 'LOAN_REPAYMENT') {
                 updatedLedger = await tx.ledger.update({
                     where: { id: ledgerId },
                     data: { activeLoanBalance: { decrement: amount } }
                 });
+                await postJournalEntry(tx, ledger.chamaId, "1110 - Bank Current Account", amount, 0, `Loan Repayment - ${reference}`);
+                await postJournalEntry(tx, ledger.chamaId, "1210 - Member Loans Receivable", 0, amount, `Loan Repayment - ${reference}`);
             }
             else if (type === 'DIVIDEND') {
                 updatedLedger = await tx.ledger.update({
                     where: { id: ledgerId },
                     data: { savingsBalance: { increment: amount } }
                 });
+                await postJournalEntry(tx, ledger.chamaId, "3120 - Retained Earnings", amount, 0, `Dividend Distribution - ${reference}`);
+                await postJournalEntry(tx, ledger.chamaId, "2110 - Member Regular Savings", 0, amount, `Dividend Distribution - ${reference}`);
             }
             else {
                 throw new Error('Unknown transaction type');
@@ -103,12 +156,16 @@ const postBatchTransaction = async (req, res) => {
                         where: { id: t.ledgerId },
                         data: { savingsBalance: { increment: t.amount } }
                     });
+                    await postJournalEntry(tx, ledger.chamaId, "1110 - Bank Current Account", t.amount, 0, `Batch Member Savings Deposit - ${transaction.reference}`);
+                    await postJournalEntry(tx, ledger.chamaId, "2110 - Member Regular Savings", 0, t.amount, `Batch Member Savings Deposit - ${transaction.reference}`);
                 }
                 else if (t.type === 'LOAN_DISBURSEMENT') {
                     updatedLedger = await tx.ledger.update({
                         where: { id: t.ledgerId },
                         data: { activeLoanBalance: { increment: t.amount } }
                     });
+                    await postJournalEntry(tx, ledger.chamaId, "1210 - Member Loans Receivable", t.amount, 0, `Batch Loan Disbursement - ${transaction.reference}`);
+                    await postJournalEntry(tx, ledger.chamaId, "1110 - Bank Current Account", 0, t.amount, `Batch Loan Disbursement - ${transaction.reference}`);
                 }
                 successful.push({ transaction, updatedLedger });
             }

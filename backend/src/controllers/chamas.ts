@@ -29,6 +29,7 @@ export const getChamas = async (req: Request, res: Response) => {
         id: chama.id,
         name: chama.name,
         registration: chama.registration,
+        regNo: chama.registration,
         memberCount: chama._count.members,
         meetingFrequency: chama.meetingFrequency || 'Monthly',
         totalPool,
@@ -48,7 +49,7 @@ export const createChama = async (req: Request, res: Response) => {
   try {
     const { 
       name, registration, phone, county, formationDate, 
-      meetingFrequency, standardContribution, lateFine, missedFine, roscaEnabled 
+      meetingFrequency, standardContribution, lateFine, missedFine, roscaEnabled, officials 
     } = req.body;
     
     const newChama = await prisma.chama.create({
@@ -66,6 +67,21 @@ export const createChama = async (req: Request, res: Response) => {
       }
     });
 
+    if (officials && Array.isArray(officials) && officials.length > 0) {
+      for (const official of officials) {
+        if (official.memberId) {
+          await prisma.user.update({
+            where: { id: official.memberId },
+            data: {
+              chamaId: newChama.id,
+              officialPosition: official.position,
+              role: 'CHAMA_ADMIN'
+            }
+          });
+        }
+      }
+    }
+
     res.status(201).json(newChama);
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Failed to create Chama' });
@@ -76,21 +92,78 @@ export const updateChama = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
     const { 
-      name, phone, county
+      name, phone, county, registration, formationDate,
+      meetingFrequency, standardContribution, lateFine, missedFine, roscaEnabled
     } = req.body;
     
     const updatedChama = await prisma.chama.update({
-      where: { id: id as string },
+      where: { id },
       data: {
-        ...(name && { name }),
-        ...(phone && { phone }),
-        ...(county && { county }),
+        ...(name             && { name }),
+        ...(phone            !== undefined && { phone }),
+        ...(county           !== undefined && { county }),
+        ...(registration     && { registration }),
+        ...(formationDate    && { formationDate: new Date(formationDate) }),
+        ...(meetingFrequency && { meetingFrequency }),
+        ...(standardContribution !== undefined && standardContribution !== '' && { standardContribution: parseFloat(standardContribution) }),
+        ...(lateFine         !== undefined && lateFine !== '' && { lateFine: parseFloat(lateFine) }),
+        ...(missedFine       !== undefined && missedFine !== '' && { missedFine: parseFloat(missedFine) }),
+        ...(roscaEnabled     !== undefined && { roscaEnabled: Boolean(roscaEnabled) }),
       }
     });
 
     res.json(updatedChama);
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Failed to update Chama' });
+  }
+};
+
+export const assignChamaOfficial = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params as { id: string };
+    const { memberId, position } = req.body;
+
+    if (!memberId || !position) {
+      return res.status(400).json({ error: 'memberId and position are required' });
+    }
+
+    // Clear anyone currently holding this exact position in this chama
+    await prisma.user.updateMany({
+      where: { chamaId: id, officialPosition: position },
+      data: { officialPosition: null, role: 'MEMBER' }
+    });
+
+    // Assign the new official
+    const updated = await prisma.user.update({
+      where: { id: memberId },
+      data: {
+        chamaId: id,
+        officialPosition: position,
+        role: 'CHAMA_ADMIN'
+      }
+    });
+
+    res.json({ success: true, member: { id: updated.id, name: updated.name, officialPosition: updated.officialPosition } });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Failed to assign official' });
+  }
+};
+
+export const addMemberToChama = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params as { id: string };
+    const { memberId } = req.body;
+
+    if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+
+    const user = await prisma.user.update({
+      where: { id: memberId },
+      data: { chamaId: id }
+    });
+
+    res.json({ success: true, member: { id: user.id, name: user.name, chamaId: user.chamaId } });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Failed to add member to chama' });
   }
 };
 
@@ -110,14 +183,8 @@ export const rotateMerryGoRound = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Merry-Go-Round is not enabled or no members available' });
     }
 
-    // Logic to rotate cycle
-    // Pick next member. For simplicity, we just pick a random member or the next one in the array
-    // Since we don't have an order saved, let's pick a random member to simulate rotation
     const nextMember = chama.members[Math.floor(Math.random() * chama.members.length)];
-    
-    // Deduct shares logic can be added here if needed (e.g. creating Journal Vouchers or updating ledgers)
 
-    // Set next payout date (+1 month)
     const nextDate = new Date();
     nextDate.setMonth(nextDate.getMonth() + 1);
 
@@ -160,12 +227,62 @@ export const getMyChama = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
-export const getChamaById = async (req: Request, res: Response) => {
+export const getChamaById = async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params as { id: string };
-    const chama = await prisma.chama.findUnique({ where: { id } });
+    const chama = await prisma.chama.findUnique({
+      where: { id },
+      include: {
+        members: {
+          select: { id: true, name: true, phone: true, officialPosition: true, role: true }
+        },
+        ledgers: true,
+        _count: { select: { members: true } }
+      }
+    });
+
     if (!chama) return res.status(404).json({ error: 'Chama not found' });
-    res.json(chama);
+
+    // Build leadership object from officials
+    const chairperson = chama.members.find(m => m.officialPosition === 'Chairperson');
+    const treasurer   = chama.members.find(m => m.officialPosition === 'Treasurer');
+    const secretary   = chama.members.find(m => m.officialPosition === 'Secretary');
+
+    const totalSavings = chama.ledgers.reduce((s, l) => s + l.savingsBalance + l.sharesBalance, 0);
+    const activeLoans  = chama.ledgers.reduce((s, l) => s + l.activeLoanBalance, 0);
+
+    res.json({
+      id: chama.id,
+      name: chama.name,
+      registration: chama.registration,
+      regNo: chama.registration,
+      phone: chama.phone,
+      county: chama.county,
+      formationDate: chama.formationDate,
+      meetingFreq: chama.meetingFrequency,
+      meetingFrequency: chama.meetingFrequency,
+      contribution: chama.standardContribution ?? 0,
+      standardContribution: chama.standardContribution ?? 0,
+      lateFine: chama.lateFine ?? 0,
+      missedFine: chama.missedFine ?? 0,
+      roscaEnabled: chama.roscaEnabled,
+      status: chama.status,
+      stats: {
+        totalMembers: chama._count.members,
+        totalSavings,
+        activeLoans,
+        finesFund: 0,
+        cycleNumber: 1
+      },
+      leadership: {
+        chairperson: chairperson?.name ?? null,
+        chairpersonId: chairperson?.id ?? null,
+        treasurer: treasurer?.name ?? null,
+        treasurerId: treasurer?.id ?? null,
+        secretary: secretary?.name ?? null,
+        secretaryId: secretary?.id ?? null,
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -174,7 +291,10 @@ export const getChamaById = async (req: Request, res: Response) => {
 export const getChamaMembers = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
-    const members = await prisma.user.findMany({ where: { chamaId: id } });
+    const members = await prisma.user.findMany({
+      where: { chamaId: id },
+      select: { id: true, name: true, phone: true, email: true, officialPosition: true, role: true, status: true, createdAt: true }
+    });
     res.json(members);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -184,7 +304,10 @@ export const getChamaMembers = async (req: Request, res: Response) => {
 export const getChamaTableBanking = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
-    const collections = await prisma.meetingCollection.findMany({ where: { chamaId: id } });
+    const collections = await prisma.meetingCollection.findMany({
+      where: { chamaId: id },
+      orderBy: { date: 'desc' }
+    });
     res.json(collections);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -198,7 +321,7 @@ export const chamaDeposit = async (req: Request, res: Response) => {
     const payment = await prisma.payment.create({
       data: {
         chamaId: id,
-        amount,
+        amount: parseFloat(amount),
         receiptNo: reference || `REC-${Date.now()}`,
         type: 'INBOUND'
       }
@@ -219,7 +342,7 @@ export const chamaPenalty = async (req: Request, res: Response) => {
         memberId: memberId || 'UNKNOWN',
         type: 'FINE',
         reason: reason || 'Penalty',
-        amount: amount
+        amount: parseFloat(amount)
       }
     });
     res.json(penalty);

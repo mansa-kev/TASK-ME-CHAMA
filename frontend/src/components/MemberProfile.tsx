@@ -86,7 +86,16 @@ export function MemberProfile() {
           phone: u.phone || '', joinDate: u.createdAt ? u.createdAt.split('T')[0] : '',
           status: 'Active', transactions: u.ledger?.transactions || [],
           finesList: memberFines,
-          kyc: { idNumber: u.idNumber || '', kraPin: u.kraPin || '', nextOfKin: u.nextOfKinName || '' },
+          kyc: { 
+            idNumber: u.idNumber || '', 
+            kraPin: u.kraPin || '', 
+            nextOfKin: u.nextOfKinName || '',
+            nextOfKinRelation: u.nextOfKinRelation || '',
+            nextOfKinPhone: u.nextOfKinPhone || '',
+            address: u.address || ''
+          },
+          gender: u.gender || '',
+          dateOfBirth: u.dateOfBirth || '',
           profilePicture: u.profilePicture, passportPhoto: u.passportPhoto,
           idDocument: u.idDocument, idFront: u.idFront, idBack: u.idBack,
           financials: {
@@ -337,19 +346,39 @@ export function MemberProfile() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">National ID</p>
-                  <p className="font-medium text-gray-800">{member.kyc.idNumber}</p>
+                  <p className="font-medium text-gray-800">{member.kyc.idNumber || '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">KRA PIN</p>
-                  <p className="font-medium text-gray-800">{member.kyc.kraPin}</p>
+                  <p className="font-medium text-gray-800">{member.kyc.kraPin || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Gender</p>
+                  <p className="font-medium text-gray-800">{member.gender || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Date of Birth</p>
+                  <p className="font-medium text-gray-800">{member.dateOfBirth ? new Date(member.dateOfBirth).toLocaleDateString('en-KE') : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Residential Address</p>
+                  <p className="font-medium text-gray-800">{member.kyc.address || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Next of Kin</p>
+                  <p className="font-medium text-gray-800">{member.kyc.nextOfKin || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Relationship</p>
+                  <p className="font-medium text-gray-800">{member.kyc.nextOfKinRelation || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Emergency Contact</p>
+                  <p className="font-medium text-gray-800">{member.kyc.nextOfKinPhone || '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Date Joined</p>
                   <p className="font-medium text-gray-800">{new Date(member.joinDate).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Next of Kin</p>
-                  <p className="font-medium text-gray-800">{member.kyc.nextOfKin}</p>
                 </div>
               </div>
               

@@ -11,6 +11,14 @@ export interface DashboardStats {
   totalSavings: { amount: number; growth: number };
   activeLoans: { amount: number; count: number; averageSize: number };
   repaymentRate: { percentage: number; target: number };
+  pendingKyc: { count: number; percentage: number };
+  upcomingRepayments: { count: number; percentage: number };
+  activeChamas: { count: number; percentage: number };
+  pendingContributions: { amount: number; percentage: number };
+  topMembers: { rank: number; id: string; name: string; balance: number; percentage: number }[];
+  chartData: { name: string; savings: number; loans: number }[];
+  recentTransactions: any[];
+  recentTickets: any[];
 }
 
 export interface ChartDataPoint {
@@ -60,6 +68,7 @@ interface DataContextType {
   members: Member[];
   setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
   chamas: ChamaGroup[];
+  setChamas: React.Dispatch<React.SetStateAction<ChamaGroup[]>>;
   kycApprovals: any[];
   setKycApprovals: React.Dispatch<React.SetStateAction<any[]>>;
   products: any[];
@@ -84,6 +93,11 @@ interface DataContextType {
   setSupportTickets: React.Dispatch<React.SetStateAction<any[]>>;
   setAccountsLedger: React.Dispatch<React.SetStateAction<any[]>>;
   setJournalVouchers: React.Dispatch<React.SetStateAction<any[]>>;
+  selectedBranchId: string;
+  setSelectedBranchId: React.Dispatch<React.SetStateAction<string>>;
+  selectedPeriod: string;
+  setSelectedPeriod: React.Dispatch<React.SetStateAction<string>>;
+  isLoading: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -93,7 +107,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     totalMembers: { count: 0, growth: 0 },
     totalSavings: { amount: 0, growth: 0 },
     activeLoans: { amount: 0, count: 0, averageSize: 0 },
-    repaymentRate: { percentage: 0, target: 0 }
+    repaymentRate: { percentage: 0, target: 0 },
+    pendingKyc: { count: 0, percentage: 0 },
+    upcomingRepayments: { count: 0, percentage: 0 },
+    activeChamas: { count: 0, percentage: 0 },
+    pendingContributions: { amount: 0, percentage: 0 },
+    topMembers: [],
+    chartData: [],
+    recentTransactions: [],
+    recentTickets: []
   });
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -115,9 +137,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [journalVouchers, setJournalVouchers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('All Branches');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('This Month');
 
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const isAdmin = user.role === 'TCM_SUPER_ADMIN' || user.role === 'CHAMA_ADMIN';
@@ -132,11 +157,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
           kycData, ticketsData, commsData, auditData, tasksData,
           appraisalsData, commissionsData, arrearsData, ledgersData, vouchersData, paymentsData
         ] = await Promise.all([
-          fetchStats().catch(() => ({
+          fetchStats(selectedPeriod, selectedBranchId).catch(() => ({
             totalMembers: { count: 0, growth: 0 },
             totalSavings: { amount: 0, growth: 0 },
             activeLoans: { amount: 0, count: 0, averageSize: 0 },
-            repaymentRate: { percentage: 0, target: 0 }
+            repaymentRate: { percentage: 0, target: 0 },
+            pendingKyc: { count: 0, percentage: 0 },
+            upcomingRepayments: { count: 0, percentage: 0 },
+            activeChamas: { count: 0, percentage: 0 },
+            pendingContributions: { amount: 0, percentage: 0 },
+            topMembers: [],
+            chartData: [],
+            recentTransactions: [],
+            recentTickets: []
           })),
           fetchAnalytics().catch(() => []),
           fetchMembers().catch(() => []),
@@ -251,16 +284,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     loadData();
-  }, []);
+  }, [selectedBranchId, selectedPeriod]);
 
   return (
     <DataContext.Provider value={{ 
-      stats, chartData, members, setMembers, chamas, kycApprovals, setKycApprovals,
+      stats, chartData, members, setMembers, chamas, setChamas, kycApprovals, setKycApprovals,
       products, inventory, branchManagement, communications, supportTickets,
       accountsLedger, bosaLedger, auditLogs, operationsTasks, operationsAppraisals,
       operationsCommissions, operationsArrears, transactions, 
       journalVouchers, payments, setPayments, setProducts, setInventory, setOperationsTasks, setSupportTickets,
-      setAccountsLedger, setJournalVouchers
+      setAccountsLedger, setJournalVouchers,
+      selectedBranchId, setSelectedBranchId, selectedPeriod, setSelectedPeriod, isLoading
     }}>
       {children}
     </DataContext.Provider>

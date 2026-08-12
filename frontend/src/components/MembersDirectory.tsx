@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck, Eye, Edit2, Trash2, AlertTriangle, ArrowRight, MessageCircle } from 'lucide-react';
+import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck, Eye, Edit2, Trash2, AlertTriangle, ArrowRight, MessageCircle, Smartphone, Send, MessageSquare } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -58,11 +58,12 @@ const colorThemes = [
 ];
 
 export function MembersDirectory() {
-  const { members, setMembers, operationsArrears } = useData();
+  const { members, setMembers, operationsArrears, isLoading } = useData();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [activeMessagingDropdown, setActiveMessagingDropdown] = useState<string | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<any>(null);
   
   // KYC Upload Modal State
@@ -284,11 +285,16 @@ export function MembersDirectory() {
       </div>
 
       {/* Members Grid */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-primary"></div>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {filteredMembers.map((member, index) => {
           const theme = colorThemes[index % 6];
           return (
-          <div key={member.id} className="bg-white rounded-[12px] shadow-[0_4px_12px_rgba(15,23,42,0.06)] border border-black/5 overflow-visible flex flex-col h-[266px] relative">
+          <div key={member.id} className="bg-white rounded-[12px] shadow-[0_4px_12px_rgba(15,23,42,0.06)] border border-black/5 overflow-visible flex flex-col h-full relative">
             
             {/* Header */}
             <div className={`h-[82px] p-4 flex items-start justify-between relative rounded-t-[12px] ${theme.header}`}>
@@ -301,7 +307,7 @@ export function MembersDirectory() {
                   )}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0 pt-0.5">
-                  <Link to={`/dashboard/members/${member.id}`} state={{ themeIndex: idx % memberColors.length }} className="font-bold text-white text-[15px] hover:opacity-90 transition-opacity truncate">
+                  <Link to={`/dashboard/members/${member.id}`} state={{ themeIndex: index % colorThemes.length }} className="font-bold text-white text-[15px] hover:opacity-90 transition-opacity truncate">
                     {member.name}
                   </Link>
                   <div className="text-[11px] text-white/80 leading-[14px] mt-0.5 line-clamp-2 break-all pr-2">
@@ -368,17 +374,40 @@ export function MembersDirectory() {
             <div className={`h-[50px] px-3 rounded-b-[12px] flex items-center justify-between shrink-0 ${theme.footer}`}>
               <Link 
                 to={`/dashboard/members/${member.id}`}
+                state={{ themeIndex: index % colorThemes.length }}
                 className={`bg-white/65 border border-black/5 rounded-lg px-4 py-1.5 text-[13px] font-semibold shadow-sm hover:bg-white/80 transition-colors ${theme.text}`}
               >
                 View Profile
               </Link>
               
               <div className="flex items-center space-x-2 border-l border-black/5 pl-3 h-[24px]">
-                <button 
-                  className={`p-1 hover:opacity-70 transition-opacity ${theme.iconBtn}`}
-                >
-                  <MessageCircle size={18} strokeWidth={2} />
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setActiveMessagingDropdown(activeMessagingDropdown === member.id ? null : member.id);
+                      setActiveDropdown(null);
+                    }}
+                    className={`p-1 hover:opacity-70 transition-opacity ${theme.iconBtn}`}
+                  >
+                    <MessageCircle size={18} strokeWidth={2} />
+                  </button>
+                  
+                  {activeMessagingDropdown === member.id && (
+                    <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-48 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 py-1 z-[99] overflow-hidden animation-fade-in text-left">
+                      <button onClick={() => { setActiveMessagingDropdown(null); toast('Inbound messaging coming soon!'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                        <MessageSquare size={16} className="mr-3 text-gray-400" /> Inbound Messaging
+                      </button>
+                      <button onClick={() => { setActiveMessagingDropdown(null); window.open(`https://wa.me/${member.phone?.replace(/\D/g, '')}`, '_blank'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-600 w-full text-left">
+                        <Send size={16} className="mr-3 text-green-500" /> WhatsApp
+                      </button>
+                      <button onClick={() => { setActiveMessagingDropdown(null); toast('SMS messaging coming soon!'); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                        <Smartphone size={16} className="mr-3 text-gray-400" /> Send SMS
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div className="relative">
                   <button 
                     onClick={(e) => {
@@ -428,6 +457,7 @@ export function MembersDirectory() {
           </div>
         )}
       </div>
+      )}
       
       {/* Upload KYC Modal (Admin Override) */}
       {showUploadModal && selectedMember && (

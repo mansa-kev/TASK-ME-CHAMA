@@ -13,4 +13,7 @@ export declare const memberDisburse: (req: Request, res: Response) => Promise<Re
 export declare const memberPenalty: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 export declare const getMyFines: (req: Request, res: Response) => Promise<void>;
 export declare const exportMemberSavingsCsv: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const updateMember: (req: Request, res: Response) => Promise<void>;
+export declare const updateMemberStatus: (req: Request, res: Response) => Promise<void>;
+export declare const deleteMember: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 //# sourceMappingURL=member.d.ts.map

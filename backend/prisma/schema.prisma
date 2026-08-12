@@ -59,6 +59,8 @@ model Chama {
   members              User[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
+  branchId             String?
+  branch               Branch?              @relation(fields: [branchId], references: [id])
   subscription         ChamaSubscription?
   invoices             PlatformInvoice[]
   bylaws               ChamaBylaws?
@@ -221,6 +223,7 @@ model Branch {
   status       String   @default("ACTIVE")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  chamas       Chama[]
 }
 
 model Product {
@@ -845,5 +848,16 @@ model MemberDividend {
   status             String               @default("PENDING") // PENDING, CREDITED_TO_SAVINGS, PAID_OUT
   creditedAt         DateTime?
   createdAt          DateTime             @default(now())
+}
+
+// ─── AI REPORTS ────────────────────────────────────────────
+
+model GeneratedReport {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  summary     String?  @db.Text
+  generatedBy String
+  createdAt   DateTime @default(now())
 }
 

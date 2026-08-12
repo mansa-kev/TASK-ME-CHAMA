@@ -154,23 +154,24 @@ async function seedSuperAdmins() {
   for (const admin of admins) {
     if (admin.email && admin.password) {
       try {
-        const existing = await prisma.user.findUnique({ where: { email: admin.email } });
+        const emailLower = admin.email.toLowerCase();
+        const existing = await prisma.user.findUnique({ where: { email: emailLower } });
         if (!existing) {
           const hashedPassword = await bcrypt.hash(admin.password, 10);
           await prisma.user.create({
             data: {
-              email: admin.email,
+              email: emailLower,
               password: hashedPassword,
               name: admin.name,
               role: 'TCM_SUPER_ADMIN',
               status: 'ACTIVE'
             }
           });
-          console.log(`✅ Seeded Super Admin: ${admin.email}`);
+          console.log(`✅ Seeded Super Admin: ${emailLower}`);
         } else if (existing.role !== 'TCM_SUPER_ADMIN' || existing.status !== 'ACTIVE') {
           // Force them to be super admin and active just in case
           await prisma.user.update({
-            where: { email: admin.email },
+            where: { email: emailLower },
             data: { role: 'TCM_SUPER_ADMIN', status: 'ACTIVE' }
           });
           console.log(`✅ Updated Super Admin role for: ${admin.email}`);

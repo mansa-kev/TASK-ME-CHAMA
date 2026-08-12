@@ -13,6 +13,8 @@ export function MemberProfileModule() {
   const [kycForm, setKycForm] = useState({
     idNumber: '',
     kraPin: '',
+    gender: '',
+    dateOfBirth: '',
     phone: '',
     address: '',
     nextOfKinName: '',
@@ -35,6 +37,8 @@ export function MemberProfileModule() {
       setKycForm({
         idNumber: data.idNumber || '',
         kraPin: data.kraPin || '',
+        gender: data.gender || '',
+        dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split('T')[0] : '',
         phone: data.phone || '',
         address: data.address || '',
         nextOfKinName: data.nextOfKinName || '',
@@ -195,6 +199,18 @@ export function MemberProfileModule() {
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Role</label>
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm font-medium text-gray-900">
                   {memberInfo?.role === 'MEMBER' ? 'Chama Member' : memberInfo?.role}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Gender</label>
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm font-medium text-gray-900">
+                  {memberInfo?.gender || 'Not Provided'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Date of Birth</label>
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm font-medium text-gray-900">
+                  {memberInfo?.dateOfBirth ? new Date(memberInfo.dateOfBirth).toLocaleDateString() : 'Not Provided'}
                 </div>
               </div>
               <div className="md:col-span-2">
@@ -400,6 +416,28 @@ export function MemberProfileModule() {
                     value={kycForm.kraPin}
                     onChange={(e) => setKycForm({...kycForm, kraPin: e.target.value})}
                     className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:border-brand-primary outline-none uppercase" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Gender</label>
+                  <select 
+                    value={kycForm.gender}
+                    onChange={(e) => setKycForm({...kycForm, gender: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:border-brand-primary outline-none bg-white" 
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Date of Birth</label>
+                  <input 
+                    type="date" 
+                    value={kycForm.dateOfBirth}
+                    onChange={(e) => setKycForm({...kycForm, dateOfBirth: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:border-brand-primary outline-none" 
                   />
                 </div>
                 <div>

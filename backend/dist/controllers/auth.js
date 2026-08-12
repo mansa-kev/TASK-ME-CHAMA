@@ -8,6 +8,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jwt_simple_1 = __importDefault(require("jwt-simple"));
 const prisma_1 = require("../prisma");
 const zod_1 = require("zod");
+const redis_1 = __importDefault(require("../redis"));
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const registerSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
@@ -113,6 +114,9 @@ const login = async (req, res) => {
             return res.status(403).json({ error: `Account is ${user.status.toLowerCase()}` });
         }
         const token = jwt_simple_1.default.encode({ id: user.id, role: user.role }, JWT_SECRET);
+        if (redis_1.default.isOpen) {
+            await redis_1.default.del(`user_status:${user.id}`);
+        }
         res.json({ token, user: { id: user.id, name: user.name, role: user.role, email: user.email, requiresPasswordChange: user.requiresPasswordChange } });
     }
     catch (error) {

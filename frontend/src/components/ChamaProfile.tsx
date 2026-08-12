@@ -3,24 +3,44 @@ import { useParams, useNavigate } from 'react-router';
 import { 
   Building, MapPin, Phone, ArrowLeft, 
   Users, Activity, Calendar, Shield, CreditCard,
-  CheckCircle2, Clock, Landmark
+  CheckCircle2, Clock, Landmark, Pencil, X, UserPlus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { useData } from './data';
-import { updateChama, createPayment, getChamaDetails, getChamaMembers, getChamaTableBankingLoans, postChamaDeposit, applyChamaPenalty } from '../api';
+import { updateChama, createPayment, getChamaDetails, getChamaMembers, getChamaTableBankingLoans, postChamaDeposit, applyChamaPenalty, assignChamaOfficial, addMemberToChama, createMember, fetchMembers } from '../api';
+
+const MEETING_FREQUENCIES = ['Weekly', 'Bi-Weekly', 'Monthly', 'Quarterly', 'Annually'];
+
+const formatDate = (d: any) => {
+  if (!d) return 'N/A';
+  try {
+    return new Date(d).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return 'N/A'; }
+};
 
 export function ChamaProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'loans' | 'rosca' | 'tablebanking' | 'actions'>('overview');
   const [showEditModal, setShowEditModal] = useState(false);
-  const { chamas, setChamas, payments, setPayments } = useData();
+  const { chamas, setChamas, members: allMembers, setMembers, payments, setPayments } = useData();
 
   const foundChama = chamas.find(c => c.id === id) || chamas[0];
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ name: foundChama?.name || '', phone: foundChama?.phone || '', county: foundChama?.county || '' });
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    county: '',
+    registration: '',
+    formationDate: '',
+    meetingFrequency: 'Monthly',
+    standardContribution: '',
+    lateFine: '',
+    missedFine: '',
+    roscaEnabled: false,
+  });
 
   const [isSubmittingLoan, setIsSubmittingLoan] = useState(false);
   const [loanFormData, setLoanFormData] = useState({ loanId: 'Group Agri-Project' });
@@ -28,15 +48,52 @@ export function ChamaProfile() {
   const [chamaMembers, setChamaMembers] = useState<any[]>([]);
   const [tableBanking, setTableBanking] = useState<any[]>([]);
 
+  // Officials editing
+  const [editingPosition, setEditingPosition] = useState<string | null>(null);
+  const [assignTarget, setAssignTarget] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  // Transact state
+  const [depositAmount, setDepositAmount] = useState('');
+  const [penaltyAmount, setPenaltyAmount] = useState('');
+  const [penaltyReason, setPenaltyReason] = useState('');
+
+  // Add member modal
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [addMemberTab, setAddMemberTab] = useState<'assign' | 'create'>('assign');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [newMemberForm, setNewMemberForm] = useState({ name: '', phone: '', email: '' });
+
   useEffect(() => {
     if (foundChama) {
-      setFormData({ name: foundChama.name || '', phone: foundChama.phone || '', county: foundChama.county || '' });
+      setFormData({
+        name: foundChama.name || '',
+        phone: foundChama.phone || '',
+        county: foundChama.county || '',
+        registration: foundChama.registration || '',
+        formationDate: foundChama.formationDate
+          ? new Date(foundChama.formationDate).toISOString().split('T')[0]
+          : '',
+        meetingFrequency: foundChama.meetingFrequency || foundChama.meetingFreq || 'Monthly',
+        standardContribution: String(foundChama.standardContribution || foundChama.contribution || ''),
+        lateFine: String(foundChama.lateFine || ''),
+        missedFine: String(foundChama.missedFine || ''),
+        roscaEnabled: foundChama.roscaEnabled || false,
+      });
     }
   }, [foundChama]);
 
+  const refreshChamaDetails = async () => {
+    if (id) {
+      const data = await getChamaDetails(id).catch(console.error);
+      if (data) setChamaDetails(data);
+    }
+  };
+
   useEffect(() => {
     if (id) {
-      getChamaDetails(id).then(data => data && setChamaDetails(data)).catch(console.error);
+      refreshChamaDetails();
       getChamaMembers(id).then(data => data && setChamaMembers(data)).catch(console.error);
       getChamaTableBankingLoans(id).then(data => data && setTableBanking(data)).catch(console.error);
     }
@@ -47,13 +104,31 @@ export function ChamaProfile() {
     setIsSubmitting(true);
     try {
       const updated = await updateChama(foundChama.id, formData);
-      setChamas(prev => prev.map(c => c.id === foundChama.id ? { ...c, ...updated } : c));
+      setChamas(prev => prev.map(c => c.id === foundChama.id ? { ...c, ...updated, registration: updated.registration, regNo: updated.registration } : c));
+      await refreshChamaDetails();
       toast.success('Profile updated');
       setShowEditModal(false);
     } catch (err) {
       toast.error('Failed to update profile');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAssignOfficial = async (position: string) => {
+    if (!assignTarget) { toast.error('Select a member'); return; }
+    setIsAssigning(true);
+    try {
+      await assignChamaOfficial(chama.id, { memberId: assignTarget, position });
+      toast.success(`${position} assigned`);
+      setEditingPosition(null);
+      setAssignTarget('');
+      await refreshChamaDetails();
+      getChamaMembers(chama.id).then(d => d && setChamaMembers(d)).catch(console.error);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to assign official');
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -77,16 +152,75 @@ export function ChamaProfile() {
     }
   };
 
+  const handleDeposit = async () => {
+    if (!depositAmount || parseFloat(depositAmount) <= 0) { toast.error('Enter a valid deposit amount'); return; }
+    try {
+      await postChamaDeposit(chama.id, { amount: parseFloat(depositAmount) });
+      toast.success('Deposit posted successfully');
+      setDepositAmount('');
+    } catch { toast.error('Failed to post deposit'); }
+  };
+
+  const handlePenalty = async () => {
+    if (!penaltyAmount || !penaltyReason) { toast.error('Enter penalty amount and reason'); return; }
+    try {
+      await applyChamaPenalty(chama.id, { amount: parseFloat(penaltyAmount), reason: penaltyReason });
+      toast.success('Penalty applied');
+      setPenaltyAmount(''); setPenaltyReason('');
+    } catch { toast.error('Failed to apply penalty'); }
+  };
+
+  const handleAssignExistingMember = async () => {
+    if (!selectedMemberId) { toast.error('Select a member'); return; }
+    setIsAddingMember(true);
+    try {
+      await addMemberToChama(chama.id, selectedMemberId);
+      toast.success('Member added to group');
+      setShowAddMemberModal(false);
+      setSelectedMemberId('');
+      const refreshed = await getChamaMembers(chama.id).catch(() => null);
+      if (refreshed) setChamaMembers(refreshed);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add member');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  const handleCreateNewMember = async () => {
+    if (!newMemberForm.name || !newMemberForm.phone) { toast.error('Name and phone are required'); return; }
+    setIsAddingMember(true);
+    try {
+      await createMember({ ...newMemberForm, chamaId: chama.id, role: 'MEMBER', email: newMemberForm.email || `${Date.now()}@taskme.local` });
+      toast.success('Member created and added to group');
+      setShowAddMemberModal(false);
+      setNewMemberForm({ name: '', phone: '', email: '' });
+      const [refreshedMembers, refreshedChamaMembers] = await Promise.all([
+        fetchMembers().catch(() => null),
+        getChamaMembers(chama.id).catch(() => null),
+      ]);
+      if (refreshedMembers) setMembers(refreshedMembers);
+      if (refreshedChamaMembers) setChamaMembers(refreshedChamaMembers);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create member');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
   const chama = chamaDetails || foundChama || {
     id: 'GRP-000',
     name: 'Loading...',
+    registration: 'N/A',
     regNo: 'N/A',
-    formationDate: 'N/A',
+    formationDate: null,
     phone: 'N/A',
     county: 'N/A',
     status: 'Active',
     meetingFreq: 'Monthly',
+    meetingFrequency: 'Monthly',
     contribution: 0,
+    standardContribution: 0,
     lateFine: 0,
     missedFine: 0,
     roscaEnabled: false,
@@ -97,15 +231,72 @@ export function ChamaProfile() {
       finesFund: 0,
       cycleNumber: 1
     },
-    leadership: {}
+    leadership: {
+      chairperson: null,
+      chairpersonId: null,
+      treasurer: null,
+      treasurerId: null,
+      secretary: null,
+      secretaryId: null,
+    }
   };
 
   const members = chamaMembers || [];
   const tableBankingLoans = tableBanking || [];
 
+  // Computed table banking stats from real data
+  const tbPoolAmount = tableBankingLoans.reduce((s: number, l: any) => s + (l.total || 0), 0);
+  const tbInterest = tableBankingLoans.reduce((s: number, l: any) => s + (l.interest || 0), 0);
+
+  // Members not yet in any chama (for assignment)
+  const unattachedMembers = (allMembers || []).filter((m: any) => !m.chamaId);
+
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(value || 0);
   };
+
+  const OfficialRow = ({ label, position, nameKey, idKey }: { label: string; position: string; nameKey: string; idKey: string }) => (
+    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+      <span className="text-xs sm:text-sm font-bold text-gray-600">{label}</span>
+      {editingPosition === position ? (
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <select
+            value={assignTarget}
+            onChange={e => setAssignTarget(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-brand-blue bg-white"
+          >
+            <option value="">Select member...</option>
+            {members.map((m: any) => (
+              <option key={m.id} value={m.id}>{m.name} {m.officialPosition ? `(${m.officialPosition})` : ''}</option>
+            ))}
+          </select>
+          <button
+            disabled={isAssigning}
+            onClick={() => handleAssignOfficial(position)}
+            className="text-xs font-bold text-white bg-brand-blue px-2.5 py-1.5 rounded-lg disabled:opacity-50"
+          >
+            {isAssigning ? '...' : 'Save'}
+          </button>
+          <button onClick={() => { setEditingPosition(null); setAssignTarget(''); }} className="text-xs text-gray-400 hover:text-gray-600">
+            <X size={14} />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className={`text-xs sm:text-sm font-extrabold ${chama.leadership?.[nameKey] ? 'text-brand-blue' : 'text-gray-400'}`}>
+            {chama.leadership?.[nameKey] || 'Not Assigned'}
+          </span>
+          <button
+            onClick={() => { setEditingPosition(position); setAssignTarget(chama.leadership?.[idKey] || ''); }}
+            className="text-gray-300 hover:text-brand-blue transition-colors"
+            title={`Assign ${label}`}
+          >
+            <Pencil size={13} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6 pb-28 sm:pb-12">
@@ -132,11 +323,11 @@ export function ChamaProfile() {
               <div className="ml-3 sm:ml-6 mt-1 sm:mt-3 min-w-0">
                 <div className="flex items-center flex-wrap gap-2">
                   <h1 className="text-xl sm:text-3xl font-extrabold text-gray-800 tracking-tight truncate">{chama.name}</h1>
-                  {chama.status === 'Active' && (
+                  {chama.status === 'ACTIVE' || chama.status === 'Active' ? (
                     <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center">
                       <CheckCircle2 size={12} className="mr-1" /> Active
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div className="flex items-center flex-wrap text-xs sm:text-sm font-medium text-gray-500 mt-1 sm:mt-2 gap-3 sm:gap-4">
                   <span className="flex items-center"><MapPin size={14} className="mr-1 shrink-0" /> {chama.county || 'N/A'}</span>
@@ -228,28 +419,20 @@ export function ChamaProfile() {
               <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
                 <div>
                   <span className="block text-[10px] sm:text-xs font-bold text-gray-400 uppercase">Registration No.</span>
-                  <span className="font-bold text-gray-800">{chama.regNo}</span>
+                  <span className="font-bold text-gray-800">{chama.registration || chama.regNo || 'N/A'}</span>
                 </div>
                 <div>
                   <span className="block text-[10px] sm:text-xs font-bold text-gray-400 uppercase">Formation Date</span>
-                  <span className="font-bold text-gray-800">{chama.formationDate}</span>
+                  <span className="font-bold text-gray-800">{formatDate(chama.formationDate)}</span>
                 </div>
               </div>
 
               <h3 className="text-base sm:text-lg font-extrabold text-brand-accent border-b border-gray-100 pb-2 mt-6 sm:mt-8">Leadership Roster</h3>
+              <p className="text-xs text-gray-400 -mt-4">Click the pencil icon to assign or change an official.</p>
               <div className="space-y-3 sm:space-y-4">
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                  <span className="text-xs sm:text-sm font-bold text-gray-600">Chairperson</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-brand-blue">{chama.leadership.chairperson}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                  <span className="text-xs sm:text-sm font-bold text-gray-600">Treasurer</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-brand-blue">{chama.leadership.treasurer}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                  <span className="text-xs sm:text-sm font-bold text-gray-600">Secretary</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-brand-blue">{chama.leadership.secretary}</span>
-                </div>
+                <OfficialRow label="Chairperson" position="Chairperson" nameKey="chairperson" idKey="chairpersonId" />
+                <OfficialRow label="Treasurer" position="Treasurer" nameKey="treasurer" idKey="treasurerId" />
+                <OfficialRow label="Secretary" position="Secretary" nameKey="secretary" idKey="secretaryId" />
               </div>
             </div>
 
@@ -259,19 +442,25 @@ export function ChamaProfile() {
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex justify-between items-center p-3 bg-brand-green/5 rounded-xl border border-brand-green/20">
                   <span className="text-xs sm:text-sm font-bold text-gray-600">Meeting Frequency</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-brand-green">{chama.meetingFreq}</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-brand-green">{chama.meetingFreq || chama.meetingFrequency || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
                   <span className="text-xs sm:text-sm font-bold text-gray-600">Standard Contribution</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-gray-800">{formatCurrency(chama.contribution)}</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-gray-800">{formatCurrency(chama.contribution ?? chama.standardContribution ?? 0)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-brand-primary/5 rounded-xl border border-brand-primary/20">
                   <span className="text-xs sm:text-sm font-bold text-gray-600">Late Fine</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-brand-primary">{formatCurrency(chama.lateFine)}</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-brand-primary">{formatCurrency(chama.lateFine ?? 0)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-brand-primary/5 rounded-xl border border-brand-primary/20">
                   <span className="text-xs sm:text-sm font-bold text-gray-600">Missed Meeting Fine</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-brand-primary">{formatCurrency(chama.missedFine)}</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-brand-primary">{formatCurrency(chama.missedFine ?? 0)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <span className="text-xs sm:text-sm font-bold text-gray-600">Merry-Go-Round</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${chama.roscaEnabled ? 'bg-brand-green/10 text-brand-green' : 'bg-gray-100 text-gray-500'}`}>
+                    {chama.roscaEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -281,54 +470,52 @@ export function ChamaProfile() {
         {activeTab === 'members' && (
           <div className="animation-fade-in space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-              <h3 className="text-base sm:text-lg font-extrabold text-brand-accent">Member Roster ({chama.stats?.totalMembers || chama.memberCount || 0})</h3>
-              <button onClick={() => toast('Use the Registration module to onboard new members.')} className="text-xs sm:text-sm font-bold text-brand-blue hover:underline">
-                + Add Member
+              <h3 className="text-base sm:text-lg font-extrabold text-brand-accent">Member Roster ({chama.stats?.totalMembers || members.length || 0})</h3>
+              <button onClick={() => setShowAddMemberModal(true)} className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-brand-blue hover:underline">
+                <UserPlus size={15} /> Add Member
               </button>
             </div>
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full text-left border-collapse min-w-[500px]">
-                <thead>
-                  <tr className="border-b border-gray-200 text-[10px] uppercase tracking-widest text-gray-400 font-extrabold">
-                    <th className="pb-3 px-4 sm:px-0">Member Name</th>
-                    <th className="pb-3">Role</th>
-                    <th className="pb-3">Date Joined</th>
-                    <th className="pb-3 text-center">Status</th>
-                    <th className="pb-3 text-center pr-4 sm:pr-0">Contribution</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {members.map((m, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      <td className="py-3 sm:py-4 px-4 sm:px-0">
-                        <span className="font-bold text-gray-800 block text-xs sm:text-sm">{m.name}</span>
-                        <span className="text-[10px] sm:text-xs text-gray-500">{m.id}</span>
-                      </td>
-                      <td className="py-3 sm:py-4">
-                        <span className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 rounded-md ${['Chairperson', 'Treasurer', 'Secretary'].includes(m.role) ? 'bg-brand-blue/10 text-brand-blue' : 'bg-gray-100 text-gray-600'}`}>
-                          {m.role}
-                        </span>
-                      </td>
-                      <td className="py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-600">{m.joined}</td>
-                      <td className="py-3 sm:py-4 text-center">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${m.status === 'Active' ? 'bg-brand-green/10 text-brand-green' : 'bg-gray-100 text-gray-500'}`}>
-                          {m.status}
-                        </span>
-                      </td>
-                      <td className="py-3 sm:py-4 text-center pr-4 sm:pr-0">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                          m.contributionStatus === 'Paid' ? 'bg-brand-green/10 text-brand-green' : 
-                          m.contributionStatus === 'Pending' ? 'bg-brand-amber/10 text-brand-amber' : 
-                          'bg-red-100 text-red-600'
-                        }`}>
-                          {m.contributionStatus}
-                        </span>
-                      </td>
+            {members.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 text-center">
+                <Users size={40} className="text-gray-200 mb-3" />
+                <p className="text-sm font-bold text-gray-400">No members assigned to this group yet.</p>
+                <button onClick={() => setShowAddMemberModal(true)} className="mt-3 text-xs font-bold text-brand-blue hover:underline">Add the first member →</button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <table className="w-full text-left border-collapse min-w-[500px]">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-[10px] uppercase tracking-widest text-gray-400 font-extrabold">
+                      <th className="pb-3 px-4 sm:px-0">Member Name</th>
+                      <th className="pb-3">Position / Role</th>
+                      <th className="pb-3">Phone</th>
+                      <th className="pb-3 text-center">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {members.map((m: any, i: number) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="py-3 sm:py-4 px-4 sm:px-0">
+                          <span className="font-bold text-gray-800 block text-xs sm:text-sm">{m.name}</span>
+                          <span className="text-[10px] sm:text-xs text-gray-500">{m.id?.slice(0, 8)}...</span>
+                        </td>
+                        <td className="py-3 sm:py-4">
+                          <span className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 rounded-md ${m.officialPosition ? 'bg-brand-blue/10 text-brand-blue' : 'bg-gray-100 text-gray-600'}`}>
+                            {m.officialPosition || m.role || 'Member'}
+                          </span>
+                        </td>
+                        <td className="py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-600">{m.phone || 'N/A'}</td>
+                        <td className="py-3 sm:py-4 text-center">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${m.status === 'ACTIVE' || m.status === 'Active' ? 'bg-brand-green/10 text-brand-green' : 'bg-gray-100 text-gray-500'}`}>
+                            {m.status || 'Active'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -337,7 +524,7 @@ export function ChamaProfile() {
               <Activity size={48} className="text-gray-300 mb-4" />
               <h3 className="text-base sm:text-lg font-extrabold text-brand-accent">Active Group Loans</h3>
               <p className="text-xs sm:text-sm text-gray-500 max-w-sm mt-2">
-                This group currently has KES 120,000 in active loans. Detailed repayment schedules and loan tracking will appear here.
+                Group loan tracking will appear here as loans are created for this Chama.
               </p>
            </div>
         )}
@@ -359,21 +546,21 @@ export function ChamaProfile() {
                     </div>
                     <div className="sm:text-right">
                       <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Target Amount</p>
-                      <p className="text-xl sm:text-2xl font-extrabold text-gray-800">{formatCurrency(chama.stats?.totalMembers ? (chama.stats?.totalMembers * chama.contribution) : 0)}</p>
+                      <p className="text-xl sm:text-2xl font-extrabold text-gray-800">{formatCurrency((chama.stats?.totalMembers || 0) * (chama.contribution || chama.standardContribution || 0))}</p>
                     </div>
                   </div>
                   
                   <div className="mb-2 flex justify-between text-xs font-bold text-gray-500">
                     <span>Cycle Progress</span>
-                    <span>2 / 4 Members</span>
+                    <span>{Math.min(2, members.length)} / {members.length} Members</span>
                   </div>
                   <div className="w-full bg-white rounded-full h-2.5 sm:h-3 border border-gray-200 overflow-hidden mb-6">
-                    <div className="bg-brand-accent h-full rounded-full" style={{ width: '50%' }}></div>
+                    <div className="bg-brand-accent h-full rounded-full" style={{ width: members.length ? `${(Math.min(2, members.length) / members.length) * 100}%` : '0%' }}></div>
                   </div>
 
                   <h4 className="text-xs sm:text-sm font-extrabold text-gray-800 mb-3 sm:mb-4">Rotation Sequence</h4>
                   <div className="flex space-x-3 sm:space-x-4 overflow-x-auto pb-4 scrollbar-none">
-                    {members.map((m, idx) => (
+                    {members.map((m: any, idx: number) => (
                       <div key={idx} className={`min-w-[120px] p-3 rounded-xl border shrink-0 ${idx === 1 ? 'border-brand-accent bg-white shadow-sm ring-2 ring-brand-accent/20' : idx < 1 ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 bg-white'}`}>
                         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold mb-2 ${idx === 1 ? 'bg-brand-accent text-white' : idx < 1 ? 'bg-gray-300 text-gray-600' : 'bg-gray-100 text-gray-500'}`}>
                           {idx + 1}
@@ -392,7 +579,7 @@ export function ChamaProfile() {
                 <Calendar size={48} className="text-gray-300 mb-4" />
                 <h3 className="text-base sm:text-lg font-extrabold text-brand-accent">Merry-Go-Round Disabled</h3>
                 <p className="text-xs sm:text-sm text-gray-500 max-w-sm mt-2">
-                  Merry-Go-Round is not enabled for this group.
+                  Enable ROSCA in Edit Profile to activate the Merry-Go-Round for this group.
                 </p>
               </div>
             )}
@@ -406,62 +593,53 @@ export function ChamaProfile() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
                 <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase">Pool Amount</p>
-                <p className="text-lg sm:text-xl font-extrabold text-brand-primary">{formatCurrency(50000)}</p>
+                <p className="text-lg sm:text-xl font-extrabold text-brand-primary">{formatCurrency(tbPoolAmount)}</p>
               </div>
               <div className="bg-brand-green/5 p-4 rounded-xl border border-brand-green/20 text-center">
                 <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase">Interest Earned</p>
-                <p className="text-lg sm:text-xl font-extrabold text-brand-green">{formatCurrency(1500)}</p>
+                <p className="text-lg sm:text-xl font-extrabold text-brand-green">{formatCurrency(tbInterest)}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
                 <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase">Members Present</p>
-                <p className="text-lg sm:text-xl font-extrabold text-gray-800">4 / 4</p>
+                <p className="text-lg sm:text-xl font-extrabold text-gray-800">{members.length} / {members.length}</p>
               </div>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="p-3.5 sm:p-4 bg-gray-50 border-b border-gray-200 font-extrabold text-gray-800 text-xs sm:text-sm">
-                Internal Loans
+                Meeting Collections
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[500px]">
-                  <thead>
-                    <tr className="border-b border-gray-200 text-[10px] uppercase tracking-widest text-gray-400 font-extrabold bg-gray-50/50">
-                      <th className="p-3">Member</th>
-                      <th className="p-3">Amount Borrowed</th>
-                      <th className="p-3">Interest (10%)</th>
-                      <th className="p-3">Date Borrowed</th>
-                      <th className="p-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {tableBankingLoans.map((l, i) => (
-                      <tr key={i} className="hover:bg-gray-50">
-                        <td className="p-3 font-bold text-xs sm:text-sm">{l.member}</td>
-                        <td className="p-3 font-extrabold text-brand-primary text-xs sm:text-sm">{formatCurrency(l.borrowed)}</td>
-                        <td className="p-3 font-bold text-brand-green text-xs sm:text-sm">{formatCurrency(l.interest)}</td>
-                        <td className="p-3 text-xs sm:text-sm text-gray-600">{l.date}</td>
-                        <td className="p-3 text-center">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${l.status === 'Active' ? 'bg-brand-amber/10 text-brand-amber' : 'bg-brand-green/10 text-brand-green'}`}>
-                            {l.status}
-                          </span>
-                        </td>
+              {tableBankingLoans.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Landmark size={36} className="text-gray-200 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400 font-bold">No meeting collections recorded yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left min-w-[500px]">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-[10px] uppercase tracking-widest text-gray-400 font-extrabold bg-gray-50/50">
+                        <th className="p-3">Date</th>
+                        <th className="p-3">Total Collected</th>
+                        <th className="p-3 text-center">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="mt-4 p-4 border border-gray-200 rounded-xl bg-gray-50">
-              <h4 className="font-bold text-gray-800 mb-3 text-xs sm:text-sm">Meeting Attendance</h4>
-              <div className="flex flex-wrap gap-4">
-                {members.map(m => (
-                  <label key={m.id} className="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="w-4 h-4 text-brand-primary rounded focus:ring-brand-primary" />
-                    <span className="text-xs sm:text-sm font-medium text-gray-700">{m.name}</span>
-                  </label>
-                ))}
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {tableBankingLoans.map((l: any, i: number) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="p-3 text-xs sm:text-sm text-gray-600">{formatDate(l.date)}</td>
+                          <td className="p-3 font-extrabold text-brand-primary text-xs sm:text-sm">{formatCurrency(l.total)}</td>
+                          <td className="p-3 text-center">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${l.status === 'POSTED' ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-amber/10 text-brand-amber'}`}>
+                              {l.status || 'Draft'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -475,8 +653,20 @@ export function ChamaProfile() {
                  <h4 className="font-extrabold text-brand-blue text-sm sm:text-base mb-1">Deposit to Group Savings</h4>
                  <p className="text-xs text-gray-500 mb-4">Post a manual deposit into this group's aggregated savings account.</p>
                  <div className="space-y-3">
-                   <input type="number" placeholder="Amount (KES)" className="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-xs sm:text-sm outline-none focus:border-brand-blue" />
-                   <button onClick={() => postChamaDeposit(chama.id, { amount: 1000 }).then(() => toast.success('Deposit posted')).catch(() => toast.error('Failed to post deposit'))} className="w-full bg-brand-blue hover:bg-blue-900 text-white text-xs sm:text-sm font-bold py-2.5 rounded-lg transition-colors shadow-sm">Post Group Deposit</button>
+                   <input
+                     type="number"
+                     placeholder="Amount (KES)"
+                     value={depositAmount}
+                     onChange={e => setDepositAmount(e.target.value)}
+                     className="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-xs sm:text-sm outline-none focus:border-brand-blue"
+                   />
+                   <button
+                     onClick={handleDeposit}
+                     disabled={!depositAmount}
+                     className="w-full bg-brand-blue hover:bg-blue-900 text-white text-xs sm:text-sm font-bold py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                   >
+                     Post Group Deposit
+                   </button>
                  </div>
                </div>
 
@@ -498,11 +688,29 @@ export function ChamaProfile() {
                {/* Apply Penalty */}
                <div className="bg-red-50/50 border border-red-100 rounded-xl p-4 sm:p-5 md:col-span-2">
                  <h4 className="font-extrabold text-red-600 text-sm sm:text-base mb-1">Apply Group Penalty</h4>
-                 <p className="text-xs text-gray-500 mb-4">Post a penalty fee (e.g. late submission of group returns) to the group arrears ledger.</p>
+                 <p className="text-xs text-gray-500 mb-4">Post a penalty fee to the group arrears ledger.</p>
                  <div className="flex flex-col sm:flex-row gap-3">
-                   <input type="number" placeholder="Penalty Amount" className="w-full sm:w-1/3 bg-white border border-gray-200 rounded-lg p-2.5 text-xs sm:text-sm outline-none focus:border-red-500" />
-                   <input type="text" placeholder="Reason (e.g. Late Returns)" className="w-full sm:w-2/3 bg-white border border-gray-200 rounded-lg p-2.5 text-xs sm:text-sm outline-none focus:border-red-500" />
-                   <button onClick={() => applyChamaPenalty(chama.id, { amount: 500, reason: 'Late' }).then(() => toast.success('Fee applied')).catch(() => toast.error('Failed to apply fee'))} className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-lg transition-colors shadow-sm whitespace-nowrap">Apply Fee</button>
+                   <input
+                     type="number"
+                     placeholder="Penalty Amount (KES)"
+                     value={penaltyAmount}
+                     onChange={e => setPenaltyAmount(e.target.value)}
+                     className="w-full sm:w-1/3 bg-white border border-gray-200 rounded-lg p-2.5 text-xs sm:text-sm outline-none focus:border-red-500"
+                   />
+                   <input
+                     type="text"
+                     placeholder="Reason (e.g. Late Returns)"
+                     value={penaltyReason}
+                     onChange={e => setPenaltyReason(e.target.value)}
+                     className="w-full sm:w-2/3 bg-white border border-gray-200 rounded-lg p-2.5 text-xs sm:text-sm outline-none focus:border-red-500"
+                   />
+                   <button
+                     onClick={handlePenalty}
+                     disabled={!penaltyAmount || !penaltyReason}
+                     className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-lg transition-colors shadow-sm whitespace-nowrap disabled:opacity-50"
+                   >
+                     Apply Fee
+                   </button>
                  </div>
                </div>
             </div>
@@ -510,34 +718,174 @@ export function ChamaProfile() {
         )}
 
       </div>
-      {/* Edit Profile Modal */}
+
+      {/* ─── Edit Profile Modal ─── */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animation-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="p-6 border-b border-gray-100 bg-gray-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animation-fade-in p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <h3 className="font-extrabold text-brand-accent text-lg">Edit Chama Profile</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto">
+              {/* Group Name */}
               <div>
                 <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Group Name</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-brand-blue outline-none" />
+                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" />
               </div>
+
+              {/* Registration + Formation Date */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Registration Number</label>
+                  <input type="text" value={formData.registration} onChange={e => setFormData({...formData, registration: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Formation Date</label>
+                  <input type="date" value={formData.formationDate} onChange={e => setFormData({...formData, formationDate: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" />
+                </div>
+              </div>
+
+              {/* Phone + County */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Phone</label>
-                  <input type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-brand-blue outline-none" />
+                  <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">County</label>
-                  <input type="text" value={formData.county} onChange={(e) => setFormData({...formData, county: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-brand-blue outline-none" />
+                  <input type="text" value={formData.county} onChange={e => setFormData({...formData, county: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" />
                 </div>
               </div>
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 border border-gray-200 py-2.5 rounded-lg font-bold text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
-                <button disabled={isSubmitting} onClick={handleEditProfile} className="flex-1 bg-brand-blue hover:bg-blue-800 text-white py-2.5 rounded-lg font-bold text-sm shadow-md disabled:opacity-50">
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+
+              {/* Meeting Frequency + Standard Contribution */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Meeting Frequency</label>
+                  <select value={formData.meetingFrequency} onChange={e => setFormData({...formData, meetingFrequency: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none bg-white">
+                    {MEETING_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Standard Contribution (KES)</label>
+                  <input type="number" value={formData.standardContribution} onChange={e => setFormData({...formData, standardContribution: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" placeholder="0" />
+                </div>
+              </div>
+
+              {/* Late Fine + Missed Fine */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Late Fine (KES)</label>
+                  <input type="number" value={formData.lateFine} onChange={e => setFormData({...formData, lateFine: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" placeholder="0" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Missed Meeting Fine (KES)</label>
+                  <input type="number" value={formData.missedFine} onChange={e => setFormData({...formData, missedFine: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" placeholder="0" />
+                </div>
+              </div>
+
+              {/* ROSCA Toggle */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <div>
+                  <p className="text-sm font-bold text-gray-700">Merry-Go-Round (ROSCA)</p>
+                  <p className="text-xs text-gray-400">Enable rotation-based payouts for this group</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, roscaEnabled: !formData.roscaEnabled})}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.roscaEnabled ? 'bg-brand-green' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.roscaEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
+            </div>
+            <div className="p-5 border-t border-gray-100 flex gap-4">
+              <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 border border-gray-200 py-2.5 rounded-lg font-bold text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button disabled={isSubmitting} onClick={handleEditProfile} className="flex-1 bg-brand-blue hover:bg-blue-800 text-white py-2.5 rounded-lg font-bold text-sm shadow-md disabled:opacity-50">
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Add Member Modal ─── */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animation-fade-in p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+              <h3 className="font-extrabold text-brand-accent text-base">Add Member to Group</h3>
+              <button onClick={() => setShowAddMemberModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100">
+              <button
+                onClick={() => setAddMemberTab('assign')}
+                className={`flex-1 py-2.5 text-xs font-bold transition-colors ${addMemberTab === 'assign' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-gray-400'}`}
+              >
+                Assign Existing Member
+              </button>
+              <button
+                onClick={() => setAddMemberTab('create')}
+                className={`flex-1 py-2.5 text-xs font-bold transition-colors ${addMemberTab === 'create' ? 'text-brand-blue border-b-2 border-brand-blue' : 'text-gray-400'}`}
+              >
+                Create New Member
+              </button>
+            </div>
+
+            <div className="p-6">
+              {addMemberTab === 'assign' ? (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-500">Select a member who is not yet assigned to any Chama group.</p>
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Member</label>
+                    <select
+                      value={selectedMemberId}
+                      onChange={e => setSelectedMemberId(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-blue bg-white"
+                    >
+                      <option value="">Select a member...</option>
+                      {unattachedMembers.map((m: any) => (
+                        <option key={m.id} value={m.id}>{m.name} — {m.phone || m.email}</option>
+                      ))}
+                    </select>
+                    {unattachedMembers.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1">All registered members are already assigned to groups.</p>
+                    )}
+                  </div>
+                  <button
+                    disabled={isAddingMember || !selectedMemberId}
+                    onClick={handleAssignExistingMember}
+                    className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50 transition-colors"
+                  >
+                    {isAddingMember ? 'Adding...' : 'Add to Group'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-500">Create a new member and automatically add them to this group.</p>
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Full Name *</label>
+                    <input type="text" value={newMemberForm.name} onChange={e => setNewMemberForm({...newMemberForm, name: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-blue" placeholder="Jane Wanjiku" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Phone *</label>
+                    <input type="tel" value={newMemberForm.phone} onChange={e => setNewMemberForm({...newMemberForm, phone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-blue" placeholder="0712345678" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Email</label>
+                    <input type="email" value={newMemberForm.email} onChange={e => setNewMemberForm({...newMemberForm, email: e.target.value})} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-blue" placeholder="jane@example.com" />
+                  </div>
+                  <button
+                    disabled={isAddingMember || !newMemberForm.name || !newMemberForm.phone}
+                    onClick={handleCreateNewMember}
+                    className="w-full bg-brand-green hover:bg-green-700 text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50 transition-colors"
+                  >
+                    {isAddingMember ? 'Creating...' : 'Create & Add to Group'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

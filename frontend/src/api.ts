@@ -57,7 +57,13 @@ export const createMember = (data: any) => apiFetch('/members', { method: 'POST'
 export const updateMemberKycAdmin = (id: string, data: any) => apiFetch(`/members/${id}/kyc`, { method: 'PUT', body: JSON.stringify(data) });
 export const resetMemberPassword = (id: string) => apiFetch(`/members/${id}/reset-password`, { method: 'POST' });
 export const fetchLedgers = () => apiFetch('/ledgers');
-export const fetchStats = () => apiFetch('/stats');
+export const fetchStats = async (period?: string, branchId?: string) => {
+  const query = new URLSearchParams();
+  if (period) query.append('period', period);
+  if (branchId) query.append('branchId', branchId);
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch(`/stats${queryString}`);
+};
 export const fetchChamas = () => apiFetch('/chamas');
 export const createChama = (data: any) => apiFetch('/chamas', { method: 'POST', body: JSON.stringify(data) });
 export const updateChama = (id: string, data: any) => apiFetch(`/chamas/${id}`, { method: 'PUT', body: JSON.stringify(data) });
@@ -274,6 +280,9 @@ export const fetchOfficialsBroadcasts = () => apiFetch('/officials/communication
 
 // --- NEW API ENDPOINTS FOR AUDIT AND FIXES ---
 export const fetchAuditStats = () => apiFetch('/auditLogs/stats');
+export const generateAIReport = (branchId?: string) => apiFetch(`/reports/generate${branchId ? `?branchId=${branchId}` : ''}`, { method: 'POST' });
+export const saveAIReport = (data: any) => apiFetch('/reports/save', { method: 'POST', body: JSON.stringify(data) });
+export const fetchSavedReports = () => apiFetch('/reports/saved');
 
 export const fetchMarketplaceItems = () => apiFetch('/inventory/marketplace');
 
@@ -288,6 +297,8 @@ export const getChamaMembers = (chamaId: string) => apiFetch(`/chamas/${chamaId}
 export const getChamaTableBankingLoans = (chamaId: string) => apiFetch(`/chamas/${chamaId}/table-banking`);
 export const postChamaDeposit = (chamaId: string, data: any) => apiFetch(`/chamas/${chamaId}/deposit`, { method: 'POST', body: JSON.stringify(data) });
 export const applyChamaPenalty = (chamaId: string, data: any) => apiFetch(`/chamas/${chamaId}/penalty`, { method: 'POST', body: JSON.stringify(data) });
+export const assignChamaOfficial = (chamaId: string, data: { memberId: string; position: string }) => apiFetch(`/chamas/${chamaId}/officials`, { method: 'PUT', body: JSON.stringify(data) });
+export const addMemberToChama = (chamaId: string, memberId: string) => apiFetch(`/chamas/${chamaId}/members`, { method: 'POST', body: JSON.stringify({ memberId }) });
 
 // ─── SAAS & MULTI-TENANT SAAS ENGINE ───────────────────────
 export const fetchPublicPlans = () => apiFetch('/saas/plans/public');

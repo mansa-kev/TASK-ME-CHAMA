@@ -520,12 +520,43 @@ const createArrearsrecords = async (req, res) => {
 exports.createArrearsrecords = createArrearsrecords;
 const getAccountledgers = async (req, res) => {
     try {
+        let chamaId = getPostChamaId(req);
+        if (!chamaId) {
+            const defaultChama = await prisma_1.prisma.chama.findFirst();
+            chamaId = defaultChama?.id;
+        }
+        const where = getQueryWhere(req);
         let data = await prisma_1.prisma.accountLedger.findMany({
-            where: getQueryWhere(req),
+            where: where,
+            orderBy: { accountName: 'asc' }
         });
-        if (data.length === 0) {
-            // Dummy records generation removed for production.
-            data = [];
+        if (data.length === 0 && chamaId) {
+            const standardAccounts = [
+                { accountName: "1110 - Bank Current Account", accountType: "ASSET", balance: 0.0 },
+                { accountName: "1120 - M-Pesa Paybill Account", accountType: "ASSET", balance: 0.0 },
+                { accountName: "1130 - Petty Cash", accountType: "ASSET", balance: 0.0 },
+                { accountName: "1210 - Member Loans Receivable", accountType: "ASSET", balance: 0.0 },
+                { accountName: "1220 - Arrears & Fines Receivable", accountType: "ASSET", balance: 0.0 },
+                { accountName: "2110 - Member Regular Savings", accountType: "LIABILITY", balance: 0.0 },
+                { accountName: "2120 - Member Welfare Fund", accountType: "LIABILITY", balance: 0.0 },
+                { accountName: "3110 - Share Capital", accountType: "EQUITY", balance: 0.0 },
+                { accountName: "3120 - Retained Earnings", accountType: "EQUITY", balance: 0.0 },
+                { accountName: "4110 - Interest Income from Loans", accountType: "REVENUE", balance: 0.0 },
+                { accountName: "4210 - Late Fees & Fines Income", accountType: "REVENUE", balance: 0.0 },
+                { accountName: "4310 - Registration Fees", accountType: "REVENUE", balance: 0.0 },
+                { accountName: "5110 - Bank & Transaction Charges", accountType: "EXPENSE", balance: 0.0 },
+                { accountName: "5210 - Operational Expenses", accountType: "EXPENSE", balance: 0.0 },
+                { accountName: "5310 - Welfare Payouts", accountType: "EXPENSE", balance: 0.0 }
+            ];
+            for (const acc of standardAccounts) {
+                await prisma_1.prisma.accountLedger.create({
+                    data: { ...acc, chamaId }
+                });
+            }
+            data = await prisma_1.prisma.accountLedger.findMany({
+                where: where,
+                orderBy: { accountName: 'asc' }
+            });
         }
         res.json(data);
     }
@@ -548,38 +579,29 @@ const createAccountledgers = async (req, res) => {
 exports.createAccountledgers = createAccountledgers;
 const getJournalvouchers = async (req, res) => {
     try {
-        let data = await prisma_1.prisma.journalVoucher.findMany({
-            where: getQueryWhere(req),
-            orderBy: { createdAt: "desc" },
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const where = getQueryWhere(req);
+        let [data, total] = await Promise.all([
+            prisma_1.prisma.journalVoucher.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: "desc" },
+            }),
+            prisma_1.prisma.journalVoucher.count({ where })
+        ]);
+        // No longer generating mock data
+        res.json({
+            data,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
         });
-        if (data.length === 0) {
-            let chamaId = getPostChamaId(req);
-            if (!chamaId) {
-                const defaultChama = await prisma_1.prisma.chama.findFirst();
-                chamaId = defaultChama?.id;
-            }
-            if (chamaId) {
-                const initialEntries = [
-                    { accountName: "Bank Current Account", debit: 50000, credit: 0, narration: "Monthly member contributions deposit", postedBy: "TREASURER" },
-                    { accountName: "Members Regular Savings", debit: 0, credit: 50000, narration: "Monthly member savings credit", postedBy: "TREASURER" },
-                    { accountName: "Main Treasury & Cash", debit: 15000, credit: 0, narration: "Welfare pool collections", postedBy: "SECRETARY" },
-                    { accountName: "Welfare & Emergency Fund", debit: 0, credit: 15000, narration: "Welfare pool allocation", postedBy: "SECRETARY" },
-                ];
-                for (const entry of initialEntries) {
-                    await prisma_1.prisma.journalVoucher.create({
-                        data: {
-                            ...entry,
-                            chamaId,
-                        }
-                    });
-                }
-                data = await prisma_1.prisma.journalVoucher.findMany({
-                    where: getQueryWhere(req),
-                    orderBy: { createdAt: "desc" },
-                });
-            }
-        }
-        res.json(data);
     }
     catch (error) {
         res.status(500).json({ error: "Failed to fetch journalVouchers" });
@@ -747,10 +769,28 @@ const exportJournalVoucherPdf = async (req, res) => {
 exports.exportJournalVoucherPdf = exportJournalVoucherPdf;
 const getPayments = async (req, res) => {
     try {
-        const data = await prisma_1.prisma.payment.findMany({
-            where: getQueryWhere(req),
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const where = getQueryWhere(req);
+        const [data, total] = await Promise.all([
+            prisma_1.prisma.payment.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { date: 'desc' }
+            }),
+            prisma_1.prisma.payment.count({ where })
+        ]);
+        res.json({
+            data,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
         });
-        res.json(data);
     }
     catch (error) {
         res.status(500).json({ error: "Failed to fetch payments" });

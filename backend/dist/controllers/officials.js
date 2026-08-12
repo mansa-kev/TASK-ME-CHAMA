@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addRole = exports.approveDividends = exports.recalculateDividends = exports.getPollDetails = exports.createPoll = exports.getPolls = exports.downloadMinute = exports.getMinutes = exports.remindMeeting = exports.executeMultiSigDisbursement = exports.signMultiSigDisbursement = exports.getMultiSigDisbursements = exports.createExpense = exports.reconcileTreasuryAccount = exports.addTreasuryAccount = exports.getRecentActivity = exports.getInvestments = exports.getExpenses = exports.removeNotice = exports.postNotice = exports.rejectLoan = exports.createDiscipline = exports.getBroadcasts = exports.getDiscipline = exports.rejectMember = exports.approveMember = exports.updateSettings = exports.getSettings = exports.getFinancialReport = exports.recordAttendance = exports.updateMeeting = exports.createMeeting = exports.getMeetings = exports.transferFunds = exports.getWelfare = exports.getArrears = exports.getNotices = exports.getTreasurySummary = exports.getTreasuryAccounts = exports.recordLoanRepayment = exports.disburseLoan = exports.approveLoan = exports.getLoans = exports.addContribution = exports.getContributions = exports.removeMember = exports.updateMember = exports.addMember = exports.getMembers = exports.getDashboardStats = void 0;
 exports.autoMatchReconciliation = exports.getReconciliationData = exports.submitVettingDecision = exports.getVettingApplications = exports.resetMemberLedger = exports.payoutMerryGoRound = exports.shuffleMerryGoRoundSlots = exports.createMerryGoRoundCycle = exports.getMerryGoRoundSchedule = exports.processWelfareClaim = exports.depositWelfare = exports.fineArrear = exports.remindArrear = exports.getLoanReport = exports.notifyGuarantors = exports.recordLoanPaymentParam = exports.updateBankIntegration = exports.syncBank = exports.deleteRole = exports.updateRole = void 0;
@@ -1720,6 +1723,7 @@ const getVettingApplications = async (req, res) => {
     }
 };
 exports.getVettingApplications = getVettingApplications;
+const redis_1 = __importDefault(require("../redis"));
 const submitVettingDecision = async (req, res) => {
     try {
         const chamaId = await getChamaId(req.user.id);
@@ -1732,6 +1736,9 @@ const submitVettingDecision = async (req, res) => {
             where: { id, chamaId },
             data: { status: newStatus }
         });
+        if (redis_1.default.isOpen) {
+            await redis_1.default.del(`user_status:${id}`);
+        }
         res.json({
             success: true,
             message: `Applicant status updated to ${newStatus}`,

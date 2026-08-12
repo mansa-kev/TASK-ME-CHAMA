@@ -5,6 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generalApiLimiter = exports.paymentLimiter = exports.authLimiter = void 0;
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const rate_limit_redis_1 = __importDefault(require("rate-limit-redis"));
+const redis_1 = __importDefault(require("../redis"));
+// Check if redisClient is connected, otherwise fallback to memory store
+const getStore = () => {
+    return new rate_limit_redis_1.default({
+        sendCommand: (...args) => redis_1.default.sendCommand(args),
+    });
+};
 /**
  * Strict Rate Limiter for Authentication endpoints (Login, Password Reset)
  * Prevents brute-force, dictionary attacks, and credential stuffing.
@@ -14,6 +22,7 @@ exports.authLimiter = (0, express_rate_limit_1.default)({
     max: 10, // Max 10 attempts per 15 minutes per IP
     standardHeaders: true,
     legacyHeaders: false,
+    store: getStore(),
     message: {
         error: 'Too many login attempts. For security reasons, please try again in 15 minutes.'
     }
@@ -27,6 +36,7 @@ exports.paymentLimiter = (0, express_rate_limit_1.default)({
     max: 10, // Max 10 transaction requests per minute per IP
     standardHeaders: true,
     legacyHeaders: false,
+    store: getStore(),
     message: {
         error: 'Transaction rate limit exceeded. Please wait a moment before trying again.'
     }
@@ -39,6 +49,7 @@ exports.generalApiLimiter = (0, express_rate_limit_1.default)({
     max: 1500, // Accommodates multi-card dashboards
     standardHeaders: true,
     legacyHeaders: false,
+    store: getStore(),
     message: {
         error: 'API rate limit exceeded. Please slow down your requests.'
     }

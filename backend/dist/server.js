@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const prisma_1 = require("./prisma");
-const arrearsEngine_1 = require("./cron/arrearsEngine");
 const dotenv_1 = __importDefault(require("dotenv"));
 const helmet_1 = __importDefault(require("helmet"));
 const auth_1 = __importDefault(require("./routes/auth"));
@@ -144,24 +143,25 @@ async function seedSuperAdmins() {
     for (const admin of admins) {
         if (admin.email && admin.password) {
             try {
-                const existing = await prisma_1.prisma.user.findUnique({ where: { email: admin.email } });
+                const emailLower = admin.email.toLowerCase();
+                const existing = await prisma_1.prisma.user.findUnique({ where: { email: emailLower } });
                 if (!existing) {
                     const hashedPassword = await bcryptjs_1.default.hash(admin.password, 10);
                     await prisma_1.prisma.user.create({
                         data: {
-                            email: admin.email,
+                            email: emailLower,
                             password: hashedPassword,
                             name: admin.name,
                             role: 'TCM_SUPER_ADMIN',
                             status: 'ACTIVE'
                         }
                     });
-                    console.log(`✅ Seeded Super Admin: ${admin.email}`);
+                    console.log(`✅ Seeded Super Admin: ${emailLower}`);
                 }
                 else if (existing.role !== 'TCM_SUPER_ADMIN' || existing.status !== 'ACTIVE') {
                     // Force them to be super admin and active just in case
                     await prisma_1.prisma.user.update({
-                        where: { email: admin.email },
+                        where: { email: emailLower },
                         data: { role: 'TCM_SUPER_ADMIN', status: 'ACTIVE' }
                     });
                     console.log(`✅ Updated Super Admin role for: ${admin.email}`);
@@ -176,6 +176,5 @@ async function seedSuperAdmins() {
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
     await seedSuperAdmins();
-    (0, arrearsEngine_1.startArrearsEngine)();
 });
 //# sourceMappingURL=server.js.map

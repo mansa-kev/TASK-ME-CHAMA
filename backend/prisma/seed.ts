@@ -6,11 +6,33 @@ const prisma = new PrismaClient();
 async function main() {
   const hashedPassword = await bcrypt.hash('Job@2026', 10);
 
+  // ─── BRANCHES ──────────────────────────────────────────────
+  console.log('Seeding Branches...');
+  const mainBranch = await prisma.branch.upsert({
+    where: { id: 'branch-main' },
+    update: {},
+    create: {
+      id: 'branch-main',
+      name: 'Main Branch',
+      location: 'Nairobi HQ'
+    }
+  });
+
+  const msaBranch = await prisma.branch.upsert({
+    where: { id: 'branch-msa' },
+    update: {},
+    create: {
+      id: 'branch-msa',
+      name: 'Mombasa Branch',
+      location: 'Mombasa CBD'
+    }
+  });
+
   // ─── CHAMAS ──────────────────────────────────────────────
   console.log('Seeding Chamas...');
   const chama = await prisma.chama.upsert({
     where: { registration: 'REG-001' },
-    update: {},
+    update: { branchId: mainBranch.id },
     create: { 
       name: 'Taskme Chama', 
       registration: 'REG-001', 

@@ -180,7 +180,7 @@ export const getMyProfile = async (req: Request, res: Response) => {
 export const updateKyc = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { idNumber, kraPin, phone, address, nextOfKinName, nextOfKinRelation, nextOfKinPhone, profilePicture, idDocument, passportPhoto, idFront, idBack } = req.body;
+    const { idNumber, kraPin, phone, address, nextOfKinName, nextOfKinRelation, nextOfKinPhone, profilePicture, idDocument, passportPhoto, idFront, idBack, gender, dateOfBirth } = req.body;
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -189,6 +189,8 @@ export const updateKyc = async (req: Request, res: Response) => {
         kraPin: kraPin || undefined,
         phone: phone || undefined,
         address: address || undefined,
+        gender: gender || undefined,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         nextOfKinName: nextOfKinName || undefined,
         nextOfKinRelation: nextOfKinRelation || undefined,
         nextOfKinPhone: nextOfKinPhone || undefined,
@@ -211,7 +213,7 @@ export const updateMemberKycAdmin = async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { 
       idNumber, kraPin, phone, address, nextOfKinName, nextOfKinRelation, nextOfKinPhone,
-      profilePicture, idDocument, passportPhoto, idFront, idBack 
+      profilePicture, idDocument, passportPhoto, idFront, idBack, gender, dateOfBirth 
     } = req.body;
     
     const updatedUser = await prisma.user.update({
@@ -221,6 +223,8 @@ export const updateMemberKycAdmin = async (req: Request, res: Response) => {
         kraPin: kraPin || undefined,
         phone: phone || undefined,
         address: address || undefined,
+        gender: gender || undefined,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         nextOfKinName: nextOfKinName || undefined,
         nextOfKinRelation: nextOfKinRelation || undefined,
         nextOfKinPhone: nextOfKinPhone || undefined,

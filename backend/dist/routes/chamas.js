@@ -10,10 +10,12 @@ router.get('/', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADM
 router.post('/', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN']), chamas_1.createChama);
 router.put('/:id', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.updateChama);
 router.post('/:id/merry-go-round', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.rotateMerryGoRound);
-exports.default = router;
 router.get('/:id', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.getChamaById);
 router.get('/:id/members', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.getChamaMembers);
 router.get('/:id/table-banking', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.getChamaTableBanking);
 router.post('/:id/deposit', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.chamaDeposit);
 router.post('/:id/penalty', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.chamaPenalty);
+router.put('/:id/officials', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.assignChamaOfficial);
+router.post('/:id/members', (0, authMiddleware_1.requireRole)(['TCM_SUPER_ADMIN', 'CHAMA_ADMIN']), chamas_1.addMemberToChama);
+exports.default = router;
 //# sourceMappingURL=chamas.js.map

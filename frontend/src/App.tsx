@@ -7,6 +7,7 @@ import { getAuthToken } from './api';
 import { SideNav } from './components/SideNav';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
+import { Reports } from './components/Reports';
 import { MembersDirectory } from './components/MembersDirectory';
 import { MemberProfile } from './components/MemberProfile';
 
@@ -347,6 +348,7 @@ function AppContent() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="reports" element={<Reports />} />
               <Route path="registration/individual" element={<IndividualOnboarding />} />
               <Route path="registration/chama" element={<ChamaOnboarding />} />
               <Route path="members" element={<MembersDirectory />} />

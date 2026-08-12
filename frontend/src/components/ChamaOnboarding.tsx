@@ -1,13 +1,29 @@
 import { useState } from 'react';
-import { Building, Users, CheckCircle2, ArrowRight, FileText, Settings, ShieldAlert } from 'lucide-react';
+import { Building, Users, CheckCircle2, ArrowRight, FileText, Settings, ShieldAlert, UserPlus, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
-import { createChama } from '../api';
+import { createChama, fetchChamas, createMember, fetchMembers } from '../api';
+import { useData } from './data';
 
 export function ChamaOnboarding() {
   const navigate = useNavigate();
+  const { members, setChamas, setMembers } = useData();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [officials, setOfficials] = useState({
+    chairperson: '',
+    treasurer: '',
+    secretary: ''
+  });
+  const [newMemberData, setNewMemberData] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    idNumber: ''
+  });
   const [formData, setFormData] = useState({
     name: '',
     registration: '',
@@ -24,6 +40,12 @@ export function ChamaOnboarding() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const officialsArray = [
+        ...(officials.chairperson ? [{ memberId: officials.chairperson, position: 'Chairperson' }] : []),
+        ...(officials.treasurer ? [{ memberId: officials.treasurer, position: 'Treasurer' }] : []),
+        ...(officials.secretary ? [{ memberId: officials.secretary, position: 'Secretary' }] : []),
+      ];
+
       await createChama({
         name: formData.name,
         registration: formData.registration,
@@ -34,9 +56,12 @@ export function ChamaOnboarding() {
         standardContribution: formData.standardContribution ? parseFloat(formData.standardContribution) : 0,
         lateFine: formData.lateFine ? parseFloat(formData.lateFine) : 0,
         missedFine: formData.missedFine ? parseFloat(formData.missedFine) : 0,
-        roscaEnabled: formData.roscaEnabled
+        roscaEnabled: formData.roscaEnabled,
+        officials: officialsArray
       });
       toast.success('Chama registered successfully!');
+      const refreshedChamas = await fetchChamas();
+      setChamas(refreshedChamas);
       navigate('/dashboard/chamas');
     } catch (err: any) {
       toast.error(err.message || 'Failed to register Chama');
@@ -45,8 +70,74 @@ export function ChamaOnboarding() {
     }
   };
 
+  const handleAddMember = async () => {
+    if (!newMemberData.firstName || !newMemberData.phone) {
+      toast.error('First Name and Phone are required.');
+      return;
+    }
+    setIsAddingMember(true);
+    try {
+      await createMember({
+        name: `${newMemberData.firstName} ${newMemberData.lastName}`.trim(),
+        email: newMemberData.email,
+        phone: newMemberData.phone,
+        idNumber: newMemberData.idNumber,
+        role: 'MEMBER'
+      });
+      toast.success('Member created successfully');
+      setShowAddMember(false);
+      setNewMemberData({ firstName: '', lastName: '', phone: '', email: '', idNumber: '' });
+      const refreshedMembers = await fetchMembers();
+      setMembers(refreshedMembers);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create member');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      
+      {showAddMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-brand-accent">Quick Add Member</h3>
+              <button onClick={() => setShowAddMember(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">First Name *</label>
+                  <input type="text" value={newMemberData.firstName} onChange={e => setNewMemberData({...newMemberData, firstName: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Last Name</label>
+                  <input type="text" value={newMemberData.lastName} onChange={e => setNewMemberData({...newMemberData, lastName: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Phone *</label>
+                <input type="tel" value={newMemberData.phone} onChange={e => setNewMemberData({...newMemberData, phone: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Email</label>
+                <input type="email" value={newMemberData.email} onChange={e => setNewMemberData({...newMemberData, email: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">ID Number</label>
+                <input type="text" value={newMemberData.idNumber} onChange={e => setNewMemberData({...newMemberData, idNumber: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+              </div>
+              <button disabled={isAddingMember} onClick={handleAddMember} className="w-full bg-brand-primary text-white font-bold py-2.5 rounded-lg hover:bg-brand-primary-dark transition-colors">
+                {isAddingMember ? 'Saving...' : 'Save Member'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm border border-brand-primary/20 p-6 flex justify-between items-center relative overflow-hidden">
@@ -136,21 +227,27 @@ export function ChamaOnboarding() {
                   <Users size={18} className="mr-2" /> Leadership Roster
                 </h3>
                 
-                <p className="text-sm text-gray-500 mb-4">Search for existing members to assign them to leadership roles for this Chama.</p>
+                <p className="text-sm text-gray-500 mb-4">Select existing members to assign them to leadership roles. If a member is not listed, you can add them quickly.</p>
                 
                 <div className="space-y-4">
-                  <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
-                     <label className="text-xs font-bold text-gray-700 uppercase block mb-2">Chairperson</label>
-                     <input type="text" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-brand-primary outline-none" placeholder="Search Member ID or Name..." />
-                  </div>
-                  <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
-                     <label className="text-xs font-bold text-gray-700 uppercase block mb-2">Treasurer</label>
-                     <input type="text" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-brand-primary outline-none" placeholder="Search Member ID or Name..." />
-                  </div>
-                  <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
-                     <label className="text-xs font-bold text-gray-700 uppercase block mb-2">Secretary</label>
-                     <input type="text" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-brand-primary outline-none" placeholder="Search Member ID or Name..." />
-                  </div>
+                  {['chairperson', 'treasurer', 'secretary'].map((role) => (
+                    <div key={role} className="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                       <label className="text-xs font-bold text-gray-700 uppercase block mb-2">{role}</label>
+                       <select 
+                         value={(officials as any)[role]} 
+                         onChange={e => setOfficials({...officials, [role]: e.target.value})} 
+                         className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-brand-primary outline-none"
+                       >
+                         <option value="">Select Member...</option>
+                         {members?.filter(m => !m.officialPosition).map(m => (
+                           <option key={m.id} value={m.id}>{m.name} ({m.phone})</option>
+                         ))}
+                       </select>
+                    </div>
+                  ))}
+                  <button onClick={() => setShowAddMember(true)} className="flex items-center text-sm font-bold text-brand-primary mt-4 hover:underline">
+                    <UserPlus size={16} className="mr-1" /> Add New Member
+                  </button>
                 </div>
               </div>
             )}
@@ -198,7 +295,7 @@ export function ChamaOnboarding() {
             {step === 4 && (
               <div className="space-y-6 animation-fade-in text-center py-10">
                  <ShieldAlert size={64} className="mx-auto text-brand-accent mb-4" />
-                 <h3 className="text-2xl font-extrabold text-brand-accent">Final Verification</h3>
+                 <h3 className="text-2xl font-extrabold text-brand-accent">Review & Submit</h3>
                  <p className="text-sm text-gray-500 max-w-md mx-auto">
                    Creating a new Chama will automatically instantiate an aggregate general ledger account for their pool. An SMS will be dispatched to the Chairperson, Secretary, and Treasurer.
                  </p>
