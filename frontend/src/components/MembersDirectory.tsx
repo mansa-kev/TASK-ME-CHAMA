@@ -7,87 +7,79 @@ import { uploadFile, updateMemberKycAdmin, deleteMember, updateMemberStatus, upd
 import { useData } from './data';
 
 const colorThemes = [
-  { 
-    header: 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-800',
-    text: 'text-white',
-    textSecondary: 'text-blue-100',
-    avatar: 'bg-white text-blue-600 border-blue-200',
-    tagPrimary: 'bg-blue-50 text-blue-700 border-blue-200',
-    tagSecondary: 'bg-blue-50 text-blue-700 border-blue-200',
-    footer: 'bg-gradient-to-r from-blue-50 to-white border-t-blue-100',
-    link: 'text-blue-700 hover:bg-blue-100',
-    iconBtn: 'text-blue-600 hover:bg-blue-100',
-    iconBtnBorder: 'border-blue-100'
+  { // Orange
+    header: 'bg-[#F97316]/10 backdrop-blur-md border-[#F97316]/20',
+    text: 'text-[#F97316]',
+    textSecondary: 'text-[#F97316]/70',
+    avatar: 'bg-white text-[#F97316] border-[#F97316]/30',
+    tagPrimary: 'bg-[#F97316]/10 text-[#F97316] border-[#F97316]/20',
+    tagSecondary: 'bg-[#F97316]/10 text-[#F97316] border-[#F97316]/20',
+    footer: 'bg-[#F97316]/5 border-t-[#F97316]/10',
+    link: 'text-[#F97316] hover:bg-[#F97316]/10',
+    iconBtn: 'text-[#F97316] hover:bg-[#F97316]/10',
+    iconBtnBorder: 'border-[#F97316]/10'
   },
-  { 
-    header: 'bg-gradient-to-br from-emerald-600 to-emerald-700 border-emerald-800',
-    text: 'text-white',
-    textSecondary: 'text-emerald-100',
-    avatar: 'bg-white text-emerald-600 border-emerald-200',
-    tagPrimary: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    tagSecondary: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    footer: 'bg-gradient-to-r from-emerald-50 to-white border-t-emerald-100',
-    link: 'text-emerald-700 hover:bg-emerald-100',
-    iconBtn: 'text-emerald-600 hover:bg-emerald-100',
-    iconBtnBorder: 'border-emerald-100'
+  { // Emerald
+    header: 'bg-[#16A34A]/10 backdrop-blur-md border-[#16A34A]/20',
+    text: 'text-[#16A34A]',
+    textSecondary: 'text-[#16A34A]/70',
+    avatar: 'bg-white text-[#16A34A] border-[#16A34A]/30',
+    tagPrimary: 'bg-[#16A34A]/10 text-[#16A34A] border-[#16A34A]/20',
+    tagSecondary: 'bg-[#16A34A]/10 text-[#16A34A] border-[#16A34A]/20',
+    footer: 'bg-[#16A34A]/5 border-t-[#16A34A]/10',
+    link: 'text-[#16A34A] hover:bg-[#16A34A]/10',
+    iconBtn: 'text-[#16A34A] hover:bg-[#16A34A]/10',
+    iconBtnBorder: 'border-[#16A34A]/10'
   },
-  { 
-    header: 'bg-gradient-to-br from-purple-600 to-purple-700 border-purple-800',
-    text: 'text-white',
-    textSecondary: 'text-purple-100',
-    avatar: 'bg-white text-purple-600 border-purple-200',
-    tagPrimary: 'bg-purple-50 text-purple-700 border-purple-200',
-    tagSecondary: 'bg-purple-50 text-purple-700 border-purple-200',
-    footer: 'bg-gradient-to-r from-purple-50 to-white border-t-purple-100',
-    link: 'text-purple-700 hover:bg-purple-100',
-    iconBtn: 'text-purple-600 hover:bg-purple-100',
-    iconBtnBorder: 'border-purple-100'
+  { // Purple
+    header: 'bg-[#7C3AED]/10 backdrop-blur-md border-[#7C3AED]/20',
+    text: 'text-[#7C3AED]',
+    textSecondary: 'text-[#7C3AED]/70',
+    avatar: 'bg-white text-[#7C3AED] border-[#7C3AED]/30',
+    tagPrimary: 'bg-[#7C3AED]/10 text-[#7C3AED] border-[#7C3AED]/20',
+    tagSecondary: 'bg-[#7C3AED]/10 text-[#7C3AED] border-[#7C3AED]/20',
+    footer: 'bg-[#7C3AED]/5 border-t-[#7C3AED]/10',
+    link: 'text-[#7C3AED] hover:bg-[#7C3AED]/10',
+    iconBtn: 'text-[#7C3AED] hover:bg-[#7C3AED]/10',
+    iconBtnBorder: 'border-[#7C3AED]/10'
   },
-  { 
-    header: 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-700',
-    text: 'text-white',
-    textSecondary: 'text-orange-100',
-    avatar: 'bg-white text-orange-600 border-orange-200',
-    tagPrimary: 'bg-orange-50 text-orange-700 border-orange-200',
-    tagSecondary: 'bg-orange-50 text-orange-700 border-orange-200',
-    footer: 'bg-gradient-to-r from-orange-50 to-white border-t-orange-100',
-    link: 'text-orange-700 hover:bg-orange-100',
-    iconBtn: 'text-orange-600 hover:bg-orange-100',
-    iconBtnBorder: 'border-orange-100'
+  { // Blue
+    header: 'bg-[#2563EB]/10 backdrop-blur-md border-[#2563EB]/20',
+    text: 'text-[#2563EB]',
+    textSecondary: 'text-[#2563EB]/70',
+    avatar: 'bg-white text-[#2563EB] border-[#2563EB]/30',
+    tagPrimary: 'bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/20',
+    tagSecondary: 'bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/20',
+    footer: 'bg-[#2563EB]/5 border-t-[#2563EB]/10',
+    link: 'text-[#2563EB] hover:bg-[#2563EB]/10',
+    iconBtn: 'text-[#2563EB] hover:bg-[#2563EB]/10',
+    iconBtnBorder: 'border-[#2563EB]/10'
   },
-  { 
-    header: 'bg-gradient-to-br from-teal-500 to-teal-600 border-teal-700',
-    text: 'text-white',
-    textSecondary: 'text-teal-100',
-    avatar: 'bg-white text-teal-600 border-teal-200',
-    tagPrimary: 'bg-teal-50 text-teal-700 border-teal-200',
-    tagSecondary: 'bg-teal-50 text-teal-700 border-teal-200',
-    footer: 'bg-gradient-to-r from-teal-50 to-white border-t-teal-100',
-    link: 'text-teal-700 hover:bg-teal-100',
-    iconBtn: 'text-teal-600 hover:bg-teal-100',
-    iconBtnBorder: 'border-teal-100'
+  { // Rose
+    header: 'bg-[#E11D48]/10 backdrop-blur-md border-[#E11D48]/20',
+    text: 'text-[#E11D48]',
+    textSecondary: 'text-[#E11D48]/70',
+    avatar: 'bg-white text-[#E11D48] border-[#E11D48]/30',
+    tagPrimary: 'bg-[#E11D48]/10 text-[#E11D48] border-[#E11D48]/20',
+    tagSecondary: 'bg-[#E11D48]/10 text-[#E11D48] border-[#E11D48]/20',
+    footer: 'bg-[#E11D48]/5 border-t-[#E11D48]/10',
+    link: 'text-[#E11D48] hover:bg-[#E11D48]/10',
+    iconBtn: 'text-[#E11D48] hover:bg-[#E11D48]/10',
+    iconBtnBorder: 'border-[#E11D48]/10'
   },
-  { 
-    header: 'bg-gradient-to-br from-pink-500 to-pink-600 border-pink-700',
-    text: 'text-white',
-    textSecondary: 'text-pink-100',
-    avatar: 'bg-white text-pink-600 border-pink-200',
-    tagPrimary: 'bg-pink-50 text-pink-700 border-pink-200',
-    tagSecondary: 'bg-pink-50 text-pink-700 border-pink-200',
-    footer: 'bg-gradient-to-r from-pink-50 to-white border-t-pink-100',
-    link: 'text-pink-700 hover:bg-pink-100',
-    iconBtn: 'text-pink-600 hover:bg-pink-100',
-    iconBtnBorder: 'border-pink-100'
+  { // Teal
+    header: 'bg-[#0D9488]/10 backdrop-blur-md border-[#0D9488]/20',
+    text: 'text-[#0D9488]',
+    textSecondary: 'text-[#0D9488]/70',
+    avatar: 'bg-white text-[#0D9488] border-[#0D9488]/30',
+    tagPrimary: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
+    tagSecondary: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
+    footer: 'bg-[#0D9488]/5 border-t-[#0D9488]/10',
+    link: 'text-[#0D9488] hover:bg-[#0D9488]/10',
+    iconBtn: 'text-[#0D9488] hover:bg-[#0D9488]/10',
+    iconBtnBorder: 'border-[#0D9488]/10'
   }
 ];
-
-const getColorTheme = (id: string) => {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colorThemes[Math.abs(hash) % colorThemes.length];
-};
 
 export function MembersDirectory() {
   const { members, setMembers, operationsArrears } = useData();
@@ -115,15 +107,15 @@ export function MembersDirectory() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <span className="bg-white/20 text-white border border-white/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
+        return <span className="bg-green-100/80 text-green-700 border border-green-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
       case 'Suspended':
-        return <span className="bg-black/20 text-white border border-black/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><AlertTriangle size={12} className="mr-1" /> Suspended</span>;
+        return <span className="bg-amber-100/80 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><AlertTriangle size={12} className="mr-1" /> Suspended</span>;
       case 'Dormant':
-        return <span className="bg-black/20 text-white border border-black/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit">Dormant</span>;
+        return <span className="bg-gray-100 text-gray-700 border border-gray-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit">Dormant</span>;
       case 'Defaulted':
-        return <span className="bg-red-500/80 text-white border border-red-500/50 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><XCircle size={12} className="mr-1" /> Defaulted</span>;
+        return <span className="bg-red-100/80 text-red-700 border border-red-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><XCircle size={12} className="mr-1" /> Defaulted</span>;
       default:
-        return <span className="bg-white/20 text-white border border-white/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
+        return <span className="bg-green-100/80 text-green-700 border border-green-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
     }
   };
 
@@ -317,8 +309,8 @@ export function MembersDirectory() {
 
       {/* Members Grid */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        {filteredMembers.map((member) => {
-          const theme = getColorTheme(member.id);
+        {filteredMembers.map((member, index) => {
+          const theme = colorThemes[index % 6];
           return (
           <div key={member.id} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm hover:shadow-lg border border-gray-200 transition-all duration-300 group overflow-visible flex flex-col h-full relative">
             
