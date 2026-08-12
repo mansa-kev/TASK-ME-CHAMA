@@ -26,6 +26,8 @@ export interface Member {
   phone: string;
   joinDate: string;
   status: string;
+  chamaName?: string;
+  officialPosition?: string;
   kyc: { idNumber: string; kraPin: string; nextOfKin: string };
   profilePicture?: string;
   passportPhoto?: string;
@@ -191,6 +193,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           phone: u.phone || '',
           joinDate: u.createdAt ? u.createdAt.split('T')[0] : '',
           status: 'Active',
+          chamaName: u.chama?.name || 'TaskMe Chama',
+          officialPosition: u.officialPosition || '',
           transactions: u.ledger?.transactions || [],
           kyc: { idNumber: u.idNumber || '', kraPin: u.kraPin || '', nextOfKin: u.nextOfKinName || '' },
           profilePicture: u.profilePicture,

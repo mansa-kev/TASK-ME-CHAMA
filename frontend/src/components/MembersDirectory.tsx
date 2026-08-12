@@ -301,7 +301,7 @@ export function MembersDirectory() {
                   )}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0 pt-0.5">
-                  <Link to={`/dashboard/members/${member.id}`} className="font-bold text-white text-[15px] hover:opacity-90 transition-opacity truncate">
+                  <Link to={`/dashboard/members/${member.id}`} state={{ themeIndex: idx % memberColors.length }} className="font-bold text-white text-[15px] hover:opacity-90 transition-opacity truncate">
                     {member.name}
                   </Link>
                   <div className="text-[11px] text-white/80 leading-[14px] mt-0.5 line-clamp-2 break-all pr-2">
@@ -323,13 +323,25 @@ export function MembersDirectory() {
             {/* Body */}
             <div className="bg-white p-[12px_14px_14px] flex-grow flex flex-col">
               {/* Tags section */}
-              <div className="flex gap-2 mb-4">
-                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${theme.tagPrimary}`}>
-                  {member.category}
-                </span>
-                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${theme.tagSecondary}`}>
-                  {member.role}
-                </span>
+              <div className="flex flex-col gap-2 mb-4">
+                <div className="flex gap-2">
+                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${theme.tagPrimary}`}>
+                    {member.category}
+                  </span>
+                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${theme.tagSecondary}`}>
+                    {member.role}
+                  </span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border text-gray-600 bg-gray-50 border-gray-200 truncate max-w-[120px]`}>
+                    🏢 {member.chamaName || 'TaskMe Chama'}
+                  </span>
+                  {(member.role === 'OFFICIAL' || member.officialPosition) && member.officialPosition && (
+                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border text-amber-700 bg-amber-50 border-amber-200`}>
+                      ⭐ {member.officialPosition}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Financials Grid */}

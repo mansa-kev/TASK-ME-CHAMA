@@ -26,7 +26,8 @@ model User {
   passportPhoto          String?
   idFront                String?
   idBack                 String?
-  role                   String       @default("MEMBER") // TCM_SUPER_ADMIN, CHAMA_ADMIN, MEMBER
+  role                   String       @default("MEMBER") // TCM_SUPER_ADMIN, CHAMA_ADMIN, MEMBER, OFFICIAL
+  officialPosition       String?      // e.g., Chairperson, Secretary, Treasurer
   status                 String       @default("ACTIVE") // PENDING, ACTIVE, REJECTED, SUSPENDED
   requiresPasswordChange Boolean      @default(false)
   createdAt              DateTime     @default(now())

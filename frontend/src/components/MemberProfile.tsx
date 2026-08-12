@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router';
+import { useParams, Link, useNavigate, useLocation } from 'react-router';
 import { useData } from './data';
 import { ArrowLeft, User, Wallet, CreditCard, ShieldCheck, FileText, CheckCircle2, TrendingUp, History, Key, DollarSign, MoreVertical, Edit2, AlertTriangle, LogOut, Trash2 } from 'lucide-react';
 import { fetchLoans, fetchMembers, fetchArrearsRecords, resetMemberPassword, getMemberShares, getMemberAuditLogs, postMemberDeposit, disburseMemberLoan, applyMemberPenalty, apiFetch, deleteMember, updateMember, updateMemberStatus } from '../api';
@@ -26,6 +26,18 @@ export function MemberProfile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editMemberData, setEditMemberData] = useState<any>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const themeIndex = location.state?.themeIndex ?? 0;
+  
+  const memberColors = [
+    { bg: 'bg-gradient-to-br from-[#F97316] to-[#FB923C]' },
+    { bg: 'bg-gradient-to-br from-[#16A34A] to-[#22C55E]' },
+    { bg: 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6]' },
+    { bg: 'bg-gradient-to-br from-[#2563EB] to-[#3B82F6]' },
+    { bg: 'bg-gradient-to-br from-[#EAB308] to-[#FACC15]' },
+    { bg: 'bg-gradient-to-br from-[#EC4899] to-[#F472B6]' }
+  ];
+  const headerBgClass = memberColors[themeIndex]?.bg || memberColors[0].bg;
 
   const member = members.find(m => m.id === id);
 
@@ -123,6 +135,7 @@ export function MemberProfile() {
         name: editMemberData.name,
         phone: editMemberData.phone,
         role: editMemberData.role,
+        officialPosition: editMemberData.officialPosition,
         category: editMemberData.category
       });
       await refreshMembers();
@@ -172,7 +185,7 @@ export function MemberProfile() {
       
       {/* Header Profile Card */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
-        <div className="bg-brand-accent h-28 relative">
+        <div className={`${headerBgClass} h-28 relative`}>
            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay"></div>
         </div>
         <div className="px-8 pb-8 relative">
@@ -829,6 +842,21 @@ export function MemberProfile() {
                   <option value="CHAMA_ADMIN">Chama Admin</option>
                 </select>
               </div>
+              {editMemberData.role === 'OFFICIAL' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-600 uppercase">Official Position</label>
+                  <select 
+                    value={editMemberData.officialPosition || ''} 
+                    onChange={(e) => setEditMemberData({...editMemberData, officialPosition: e.target.value})} 
+                    className="w-full mt-1 border-2 border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:border-brand-primary outline-none"
+                  >
+                    <option value="">Select Position</option>
+                    <option value="Chairperson">Chairperson</option>
+                    <option value="Secretary">Secretary</option>
+                    <option value="Treasurer">Treasurer</option>
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-bold text-gray-600 uppercase">Category</label>
                 <select 

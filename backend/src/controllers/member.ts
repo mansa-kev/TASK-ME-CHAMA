@@ -22,7 +22,7 @@ export const getMembers = async (req: Request, res: Response) => {
     const [members, total] = await Promise.all([
       prisma.user.findMany({
         where: whereClause,
-        include: { ledger: { include: { transactions: true } } },
+        include: { ledger: { include: { transactions: true } }, chama: { select: { name: true } } },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
@@ -450,7 +450,7 @@ export const exportMemberSavingsCsv = async (req: Request, res: Response) => {
 export const updateMember = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { name, phone, role, status } = req.body;
+    const { name, phone, role, status, officialPosition } = req.body;
     const user = (req as any).user;
     
     // Additional authorization checks can be added here if needed
@@ -461,6 +461,7 @@ export const updateMember = async (req: Request, res: Response) => {
         name,
         phone,
         role,
+        officialPosition: officialPosition || undefined,
         ...(status && { status })
       }
     });
