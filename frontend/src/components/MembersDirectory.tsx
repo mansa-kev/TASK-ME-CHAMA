@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck, Eye, Edit2, Trash2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Search, UserPlus, FileDown, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Filter, UploadCloud, X, FileImage, ShieldCheck, Eye, Edit2, Trash2, AlertTriangle, ArrowRight, MessageCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -7,77 +7,53 @@ import { uploadFile, updateMemberKycAdmin, deleteMember, updateMemberStatus, upd
 import { useData } from './data';
 
 const colorThemes = [
-  { // Orange
-    header: 'bg-[#F97316]/10 backdrop-blur-md border-[#F97316]/20',
-    text: 'text-[#F97316]',
-    textSecondary: 'text-[#F97316]/70',
-    avatar: 'bg-white text-[#F97316] border-[#F97316]/30',
-    tagPrimary: 'bg-[#F97316]/10 text-[#F97316] border-[#F97316]/20',
-    tagSecondary: 'bg-[#F97316]/10 text-[#F97316] border-[#F97316]/20',
-    footer: 'bg-[#F97316]/5 border-t-[#F97316]/10',
-    link: 'text-[#F97316] hover:bg-[#F97316]/10',
-    iconBtn: 'text-[#F97316] hover:bg-[#F97316]/10',
-    iconBtnBorder: 'border-[#F97316]/10'
+  { // Blue
+    header: 'bg-[linear-gradient(135deg,#2563EB_0%,#1D4ED8_100%)]',
+    text: 'text-[#2563EB]',
+    footer: 'bg-[#EFF6FF]',
+    tagPrimary: 'bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/10',
+    tagSecondary: 'bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/10',
+    iconBtn: 'text-[#2563EB]'
   },
-  { // Emerald
-    header: 'bg-[#16A34A]/10 backdrop-blur-md border-[#16A34A]/20',
+  { // Green
+    header: 'bg-[linear-gradient(135deg,#16A34A_0%,#15803D_100%)]',
     text: 'text-[#16A34A]',
-    textSecondary: 'text-[#16A34A]/70',
-    avatar: 'bg-white text-[#16A34A] border-[#16A34A]/30',
-    tagPrimary: 'bg-[#16A34A]/10 text-[#16A34A] border-[#16A34A]/20',
-    tagSecondary: 'bg-[#16A34A]/10 text-[#16A34A] border-[#16A34A]/20',
-    footer: 'bg-[#16A34A]/5 border-t-[#16A34A]/10',
-    link: 'text-[#16A34A] hover:bg-[#16A34A]/10',
-    iconBtn: 'text-[#16A34A] hover:bg-[#16A34A]/10',
-    iconBtnBorder: 'border-[#16A34A]/10'
+    footer: 'bg-[#F0FDF4]',
+    tagPrimary: 'bg-[#16A34A]/10 text-[#16A34A] border-[#16A34A]/10',
+    tagSecondary: 'bg-[#16A34A]/10 text-[#16A34A] border-[#16A34A]/10',
+    iconBtn: 'text-[#16A34A]'
   },
   { // Purple
-    header: 'bg-[#7C3AED]/10 backdrop-blur-md border-[#7C3AED]/20',
+    header: 'bg-[linear-gradient(135deg,#7C3AED_0%,#6D28D9_100%)]',
     text: 'text-[#7C3AED]',
-    textSecondary: 'text-[#7C3AED]/70',
-    avatar: 'bg-white text-[#7C3AED] border-[#7C3AED]/30',
-    tagPrimary: 'bg-[#7C3AED]/10 text-[#7C3AED] border-[#7C3AED]/20',
-    tagSecondary: 'bg-[#7C3AED]/10 text-[#7C3AED] border-[#7C3AED]/20',
-    footer: 'bg-[#7C3AED]/5 border-t-[#7C3AED]/10',
-    link: 'text-[#7C3AED] hover:bg-[#7C3AED]/10',
-    iconBtn: 'text-[#7C3AED] hover:bg-[#7C3AED]/10',
-    iconBtnBorder: 'border-[#7C3AED]/10'
+    footer: 'bg-[#F5F3FF]',
+    tagPrimary: 'bg-[#7C3AED]/10 text-[#7C3AED] border-[#7C3AED]/10',
+    tagSecondary: 'bg-[#7C3AED]/10 text-[#7C3AED] border-[#7C3AED]/10',
+    iconBtn: 'text-[#7C3AED]'
   },
-  { // Blue
-    header: 'bg-[#2563EB]/10 backdrop-blur-md border-[#2563EB]/20',
-    text: 'text-[#2563EB]',
-    textSecondary: 'text-[#2563EB]/70',
-    avatar: 'bg-white text-[#2563EB] border-[#2563EB]/30',
-    tagPrimary: 'bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/20',
-    tagSecondary: 'bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/20',
-    footer: 'bg-[#2563EB]/5 border-t-[#2563EB]/10',
-    link: 'text-[#2563EB] hover:bg-[#2563EB]/10',
-    iconBtn: 'text-[#2563EB] hover:bg-[#2563EB]/10',
-    iconBtnBorder: 'border-[#2563EB]/10'
-  },
-  { // Rose
-    header: 'bg-[#E11D48]/10 backdrop-blur-md border-[#E11D48]/20',
-    text: 'text-[#E11D48]',
-    textSecondary: 'text-[#E11D48]/70',
-    avatar: 'bg-white text-[#E11D48] border-[#E11D48]/30',
-    tagPrimary: 'bg-[#E11D48]/10 text-[#E11D48] border-[#E11D48]/20',
-    tagSecondary: 'bg-[#E11D48]/10 text-[#E11D48] border-[#E11D48]/20',
-    footer: 'bg-[#E11D48]/5 border-t-[#E11D48]/10',
-    link: 'text-[#E11D48] hover:bg-[#E11D48]/10',
-    iconBtn: 'text-[#E11D48] hover:bg-[#E11D48]/10',
-    iconBtnBorder: 'border-[#E11D48]/10'
+  { // Orange
+    header: 'bg-[linear-gradient(135deg,#F97316_0%,#EA580C_100%)]',
+    text: 'text-[#F97316]',
+    footer: 'bg-[#FFF7ED]',
+    tagPrimary: 'bg-[#F97316]/10 text-[#F97316] border-[#F97316]/10',
+    tagSecondary: 'bg-[#F97316]/10 text-[#F97316] border-[#F97316]/10',
+    iconBtn: 'text-[#F97316]'
   },
   { // Teal
-    header: 'bg-[#0D9488]/10 backdrop-blur-md border-[#0D9488]/20',
-    text: 'text-[#0D9488]',
-    textSecondary: 'text-[#0D9488]/70',
-    avatar: 'bg-white text-[#0D9488] border-[#0D9488]/30',
-    tagPrimary: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
-    tagSecondary: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
-    footer: 'bg-[#0D9488]/5 border-t-[#0D9488]/10',
-    link: 'text-[#0D9488] hover:bg-[#0D9488]/10',
-    iconBtn: 'text-[#0D9488] hover:bg-[#0D9488]/10',
-    iconBtnBorder: 'border-[#0D9488]/10'
+    header: 'bg-[linear-gradient(135deg,#0891B2_0%,#0E7490_100%)]',
+    text: 'text-[#0891B2]',
+    footer: 'bg-[#ECFEFF]',
+    tagPrimary: 'bg-[#0891B2]/10 text-[#0891B2] border-[#0891B2]/10',
+    tagSecondary: 'bg-[#0891B2]/10 text-[#0891B2] border-[#0891B2]/10',
+    iconBtn: 'text-[#0891B2]'
+  },
+  { // Pink
+    header: 'bg-[linear-gradient(135deg,#DB2777_0%,#BE185D_100%)]',
+    text: 'text-[#DB2777]',
+    footer: 'bg-[#FDF2F8]',
+    tagPrimary: 'bg-[#DB2777]/10 text-[#DB2777] border-[#DB2777]/10',
+    tagSecondary: 'bg-[#DB2777]/10 text-[#DB2777] border-[#DB2777]/10',
+    iconBtn: 'text-[#DB2777]'
   }
 ];
 
@@ -107,15 +83,15 @@ export function MembersDirectory() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <span className="bg-green-100/80 text-green-700 border border-green-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
+        return <span className="bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center w-fit"><CheckCircle2 size={10} className="mr-1" /> Active</span>;
       case 'Suspended':
-        return <span className="bg-amber-100/80 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><AlertTriangle size={12} className="mr-1" /> Suspended</span>;
+        return <span className="bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center w-fit"><AlertTriangle size={10} className="mr-1" /> Suspended</span>;
       case 'Dormant':
-        return <span className="bg-gray-100 text-gray-700 border border-gray-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit">Dormant</span>;
+        return <span className="bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center w-fit">Dormant</span>;
       case 'Defaulted':
-        return <span className="bg-red-100/80 text-red-700 border border-red-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><XCircle size={12} className="mr-1" /> Defaulted</span>;
+        return <span className="bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center w-fit"><XCircle size={10} className="mr-1" /> Defaulted</span>;
       default:
-        return <span className="bg-green-100/80 text-green-700 border border-green-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
+        return <span className="bg-white/10 border border-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center w-fit"><CheckCircle2 size={10} className="mr-1" /> Active</span>;
     }
   };
 
@@ -312,28 +288,29 @@ export function MembersDirectory() {
         {filteredMembers.map((member, index) => {
           const theme = colorThemes[index % 6];
           return (
-          <div key={member.id} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm hover:shadow-lg border border-gray-200 transition-all duration-300 group overflow-visible flex flex-col h-full relative">
+          <div key={member.id} className="bg-white rounded-[12px] shadow-[0_4px_12px_rgba(15,23,42,0.06)] border border-black/5 overflow-visible flex flex-col h-[266px] relative">
             
-            {/* Header section with avatar, name, and status */}
-            <div className={`p-4 border-b flex items-start justify-between relative rounded-t-2xl ${theme.header}`}>
-              <div className="flex items-start space-x-3">
-                <div className={`w-10 h-10 rounded-full border flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-sm ${theme.avatar}`}>
+            {/* Header */}
+            <div className={`h-[82px] p-4 flex items-start justify-between relative rounded-t-[12px] ${theme.header}`}>
+              <div className="flex items-start space-x-3 w-full pr-16">
+                <div className={`w-[44px] h-[44px] rounded-full bg-white flex items-center justify-center font-bold text-lg shadow-sm border border-black/5 shrink-0 ${theme.text}`}>
                   {member.passportPhoto || member.profilePicture ? (
-                    <img src={member.passportPhoto || member.profilePicture} alt={member.name} className="w-full h-full object-cover" />
+                    <img src={member.passportPhoto || member.profilePicture} alt={member.name} className="w-full h-full object-cover rounded-full" />
                   ) : (
-                    member.name.charAt(0)
+                    member.name.charAt(0).toUpperCase()
                   )}
                 </div>
-                <div>
-                  <Link to={`/dashboard/members/${member.id}`} className={`font-extrabold ${theme.text} hover:opacity-80 transition-colors text-sm flex items-center gap-1 group-hover:underline line-clamp-1`}>
+                <div className="flex flex-col flex-1 min-w-0 pt-0.5">
+                  <Link to={`/dashboard/members/${member.id}`} className="font-bold text-white text-[15px] hover:opacity-90 transition-opacity truncate">
                     {member.name}
                   </Link>
-                  <div className={`text-[11px] font-medium mt-0.5 ${theme.textSecondary}`}>{member.id}</div>
-                  <div className={`text-[11px] mt-0.5 ${theme.textSecondary}`}>{member.phone}</div>
+                  <div className="text-[11px] text-white/80 leading-[14px] mt-0.5 line-clamp-2 break-all pr-2">
+                    {member.id}
+                  </div>
                 </div>
               </div>
               
-              <div className="flex flex-col items-end gap-1.5 shrink-0 pl-1">
+              <div className="absolute top-4 right-4 flex flex-col items-end gap-1.5">
                 {getStatusBadge(member.status)}
                 {member.hasArrears && (
                   <span className="inline-flex items-center text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded font-bold uppercase border border-red-400 shadow-sm">
@@ -343,61 +320,52 @@ export function MembersDirectory() {
               </div>
             </div>
 
-            {/* Tags section */}
-            <div className="px-4 py-2.5 flex gap-1.5 flex-wrap">
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${theme.tagPrimary}`}>
-                {member.category}
-              </span>
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${theme.tagSecondary}`}>
-                {member.role}
-              </span>
-            </div>
-
-            {/* Financials Grid */}
-            <div className="px-4 pb-4 grid grid-cols-2 gap-2 flex-grow">
-              <div className="bg-gray-50/80 rounded-xl p-2.5 border border-gray-100/50 flex flex-col justify-center">
-                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1">Savings</span>
-                <span className="text-sm font-extrabold text-gray-800">{formatCurrency(member.financials.savings)}</span>
-                <span className="text-[8px] text-gray-400 font-bold uppercase mt-1">Shares: {formatCurrency(member.financials.shares)}</span>
-              </div>
-              <div className="bg-gray-50/80 rounded-xl p-2.5 border border-gray-100/50 flex flex-col justify-center">
-                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1">Active Loan</span>
-                <span className={`text-sm font-extrabold ${member.financials.activeLoanBalance > 0 ? 'text-gray-800' : 'text-gray-400'}`}>
-                  {formatCurrency(member.financials.activeLoanBalance)}
+            {/* Body */}
+            <div className="bg-white p-[12px_14px_14px] flex-grow flex flex-col">
+              {/* Tags section */}
+              <div className="flex gap-2 mb-4">
+                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${theme.tagPrimary}`}>
+                  {member.category}
                 </span>
-                <div className="mt-1 flex items-center">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400 mr-1">Fines:</span>
-                  {(member.hasArrears || member.financials.fines > 0) ? (
-                    <span className="text-[9px] flex items-center text-red-500 font-bold">
-                      {formatCurrency(member.totalArrears > 0 ? member.totalArrears : member.financials.fines)}
+                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${theme.tagSecondary}`}>
+                  {member.role}
+                </span>
+              </div>
+
+              {/* Financials Grid */}
+              <div className="grid grid-cols-2 gap-2 mt-auto">
+                <div className="bg-[#FAFAFC] border border-[#F0F1F5] rounded-[10px] p-3 flex flex-col justify-center">
+                  <span className="text-[10px] font-semibold text-[#64748B] mb-1">SAVINGS</span>
+                  <span className="text-[16px] font-bold text-[#172033] mb-1">{formatCurrency(member.financials.savings)}</span>
+                  <span className="text-[10px] font-semibold text-[#64748B] uppercase">SHARES: {formatCurrency(member.financials.shares)}</span>
+                </div>
+                <div className="bg-[#FAFAFC] border border-[#F0F1F5] rounded-[10px] p-3 flex flex-col justify-center">
+                  <span className="text-[10px] font-semibold text-[#64748B] mb-1">ACTIVE LOAN</span>
+                  <span className="text-[16px] font-bold text-[#172033] mb-1">{formatCurrency(member.financials.activeLoanBalance)}</span>
+                  <div className="mt-1 flex items-center">
+                    <span className="text-[10px] font-semibold text-[#64748B] uppercase">FINES: </span>
+                    <span className={`text-[10px] font-semibold ml-1 uppercase ${(member.hasArrears || member.financials.fines > 0) ? 'text-red-500' : 'text-[#64748B]'}`}>
+                      {(member.hasArrears || member.financials.fines > 0) ? formatCurrency(member.totalArrears > 0 ? member.totalArrears : member.financials.fines) : '-'}
                     </span>
-                  ) : (
-                    <span className="text-[9px] text-gray-400 font-bold">-</span>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Action Footer */}
-            <div className={`mt-auto border-t p-2.5 rounded-b-2xl flex items-center justify-between ${theme.footer}`}>
+            {/* Footer */}
+            <div className={`h-[50px] px-3 rounded-b-[12px] flex items-center justify-between shrink-0 ${theme.footer}`}>
               <Link 
                 to={`/dashboard/members/${member.id}`}
-                className={`flex-1 flex justify-center items-center py-1.5 text-xs font-bold rounded-lg transition-colors group/btn shadow-sm bg-white/50 ${theme.link}`}
+                className={`bg-white/65 border border-black/5 rounded-lg px-4 py-1.5 text-[13px] font-semibold shadow-sm hover:bg-white/80 transition-colors ${theme.text}`}
               >
-                <span>View Profile</span>
-                <ArrowRight size={14} className="ml-1 opacity-0 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
+                View Profile
               </Link>
               
-              <div className={`flex items-center space-x-1 relative border-l pl-2 ${theme.iconBtnBorder}`}>
+              <div className="flex items-center space-x-2 border-l border-black/5 pl-3 h-[24px]">
                 <button 
-                  onClick={() => {
-                    setSelectedMember(member);
-                    setShowUploadModal(true);
-                  }}
-                  title="Upload KYC"
-                  className={`p-1.5 rounded-lg transition-colors ${theme.iconBtn}`}
+                  className={`p-1 hover:opacity-70 transition-opacity ${theme.iconBtn}`}
                 >
-                  <UploadCloud size={16} />
+                  <MessageCircle size={18} strokeWidth={2} />
                 </button>
                 <div className="relative">
                   <button 
@@ -406,15 +374,18 @@ export function MembersDirectory() {
                       e.stopPropagation();
                       setActiveDropdown(activeDropdown === member.id ? null : member.id);
                     }}
-                    className={`p-1.5 rounded-lg transition-colors ${activeDropdown === member.id ? 'bg-gray-800 text-white shadow-sm' : theme.iconBtn}`}
+                    className={`p-1 hover:opacity-70 transition-opacity ${theme.iconBtn}`}
                   >
-                    <MoreVertical size={16} />
+                    <MoreVertical size={18} strokeWidth={2} />
                   </button>
                   
                   {activeDropdown === member.id && (
                     <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-48 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 py-1 z-[99] overflow-hidden animation-fade-in text-left">
                       <button onClick={() => { setEditMemberData(member); setShowEditModal(true); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
                         <Edit2 size={16} className="mr-3 text-gray-400" /> Edit Details
+                      </button>
+                      <button onClick={() => { setSelectedMember(member); setShowUploadModal(true); setActiveDropdown(null); }} className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary w-full text-left">
+                        <UploadCloud size={16} className="mr-3 text-gray-400" /> Upload KYC
                       </button>
                       <button onClick={() => handleSuspendMember(member)} className={`flex items-center px-4 py-2.5 text-sm font-medium w-full text-left ${member.status === 'Suspended' ? 'text-brand-green hover:bg-brand-green/5' : 'text-gray-700 hover:bg-brand-amber/5 hover:text-brand-amber'}`}>
                         {member.status === 'Suspended' ? (
