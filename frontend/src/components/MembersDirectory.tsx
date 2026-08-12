@@ -6,6 +6,89 @@ import * as XLSX from 'xlsx';
 import { uploadFile, updateMemberKycAdmin, deleteMember, updateMemberStatus, updateMember } from '../api';
 import { useData } from './data';
 
+const colorThemes = [
+  { 
+    header: 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-800',
+    text: 'text-white',
+    textSecondary: 'text-blue-100',
+    avatar: 'bg-white text-blue-600 border-blue-200',
+    tagPrimary: 'bg-blue-50 text-blue-700 border-blue-200',
+    tagSecondary: 'bg-blue-50 text-blue-700 border-blue-200',
+    footer: 'bg-gradient-to-r from-blue-50 to-white border-t-blue-100',
+    link: 'text-blue-700 hover:bg-blue-100',
+    iconBtn: 'text-blue-600 hover:bg-blue-100',
+    iconBtnBorder: 'border-blue-100'
+  },
+  { 
+    header: 'bg-gradient-to-br from-emerald-600 to-emerald-700 border-emerald-800',
+    text: 'text-white',
+    textSecondary: 'text-emerald-100',
+    avatar: 'bg-white text-emerald-600 border-emerald-200',
+    tagPrimary: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    tagSecondary: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    footer: 'bg-gradient-to-r from-emerald-50 to-white border-t-emerald-100',
+    link: 'text-emerald-700 hover:bg-emerald-100',
+    iconBtn: 'text-emerald-600 hover:bg-emerald-100',
+    iconBtnBorder: 'border-emerald-100'
+  },
+  { 
+    header: 'bg-gradient-to-br from-purple-600 to-purple-700 border-purple-800',
+    text: 'text-white',
+    textSecondary: 'text-purple-100',
+    avatar: 'bg-white text-purple-600 border-purple-200',
+    tagPrimary: 'bg-purple-50 text-purple-700 border-purple-200',
+    tagSecondary: 'bg-purple-50 text-purple-700 border-purple-200',
+    footer: 'bg-gradient-to-r from-purple-50 to-white border-t-purple-100',
+    link: 'text-purple-700 hover:bg-purple-100',
+    iconBtn: 'text-purple-600 hover:bg-purple-100',
+    iconBtnBorder: 'border-purple-100'
+  },
+  { 
+    header: 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-700',
+    text: 'text-white',
+    textSecondary: 'text-orange-100',
+    avatar: 'bg-white text-orange-600 border-orange-200',
+    tagPrimary: 'bg-orange-50 text-orange-700 border-orange-200',
+    tagSecondary: 'bg-orange-50 text-orange-700 border-orange-200',
+    footer: 'bg-gradient-to-r from-orange-50 to-white border-t-orange-100',
+    link: 'text-orange-700 hover:bg-orange-100',
+    iconBtn: 'text-orange-600 hover:bg-orange-100',
+    iconBtnBorder: 'border-orange-100'
+  },
+  { 
+    header: 'bg-gradient-to-br from-teal-500 to-teal-600 border-teal-700',
+    text: 'text-white',
+    textSecondary: 'text-teal-100',
+    avatar: 'bg-white text-teal-600 border-teal-200',
+    tagPrimary: 'bg-teal-50 text-teal-700 border-teal-200',
+    tagSecondary: 'bg-teal-50 text-teal-700 border-teal-200',
+    footer: 'bg-gradient-to-r from-teal-50 to-white border-t-teal-100',
+    link: 'text-teal-700 hover:bg-teal-100',
+    iconBtn: 'text-teal-600 hover:bg-teal-100',
+    iconBtnBorder: 'border-teal-100'
+  },
+  { 
+    header: 'bg-gradient-to-br from-pink-500 to-pink-600 border-pink-700',
+    text: 'text-white',
+    textSecondary: 'text-pink-100',
+    avatar: 'bg-white text-pink-600 border-pink-200',
+    tagPrimary: 'bg-pink-50 text-pink-700 border-pink-200',
+    tagSecondary: 'bg-pink-50 text-pink-700 border-pink-200',
+    footer: 'bg-gradient-to-r from-pink-50 to-white border-t-pink-100',
+    link: 'text-pink-700 hover:bg-pink-100',
+    iconBtn: 'text-pink-600 hover:bg-pink-100',
+    iconBtnBorder: 'border-pink-100'
+  }
+];
+
+const getColorTheme = (id: string) => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colorThemes[Math.abs(hash) % colorThemes.length];
+};
+
 export function MembersDirectory() {
   const { members, setMembers, operationsArrears } = useData();
 
@@ -32,15 +115,15 @@ export function MembersDirectory() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
+        return <span className="bg-white/20 text-white border border-white/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
       case 'Suspended':
-        return <span className="bg-brand-amber/10 text-brand-amber border border-brand-amber/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><AlertTriangle size={12} className="mr-1" /> Suspended</span>;
+        return <span className="bg-black/20 text-white border border-black/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><AlertTriangle size={12} className="mr-1" /> Suspended</span>;
       case 'Dormant':
-        return <span className="bg-gray-100 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit">Dormant</span>;
+        return <span className="bg-black/20 text-white border border-black/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit">Dormant</span>;
       case 'Defaulted':
-        return <span className="bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><XCircle size={12} className="mr-1" /> Defaulted</span>;
+        return <span className="bg-red-500/80 text-white border border-red-500/50 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><XCircle size={12} className="mr-1" /> Defaulted</span>;
       default:
-        return <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-1 rounded-full text-xs font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
+        return <span className="bg-white/20 text-white border border-white/30 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center w-fit"><CheckCircle2 size={12} className="mr-1" /> Active</span>;
     }
   };
 
@@ -234,13 +317,15 @@ export function MembersDirectory() {
 
       {/* Members Grid */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        {filteredMembers.map((member) => (
-          <div key={member.id} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm hover:shadow-lg border border-brand-primary/10 hover:border-brand-primary/40 transition-all duration-300 group overflow-visible flex flex-col h-full relative">
+        {filteredMembers.map((member) => {
+          const theme = getColorTheme(member.id);
+          return (
+          <div key={member.id} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm hover:shadow-lg border border-gray-200 transition-all duration-300 group overflow-visible flex flex-col h-full relative">
             
             {/* Header section with avatar, name, and status */}
-            <div className="p-4 border-b border-brand-primary/20 flex items-start justify-between relative bg-gradient-to-r from-brand-primary/15 to-brand-blue/5 rounded-t-2xl">
+            <div className={`p-4 border-b flex items-start justify-between relative rounded-t-2xl ${theme.header}`}>
               <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 rounded-full bg-white border border-brand-primary/30 flex items-center justify-center text-brand-primary font-bold text-base overflow-hidden shrink-0 shadow-sm">
+                <div className={`w-10 h-10 rounded-full border flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-sm ${theme.avatar}`}>
                   {member.passportPhoto || member.profilePicture ? (
                     <img src={member.passportPhoto || member.profilePicture} alt={member.name} className="w-full h-full object-cover" />
                   ) : (
@@ -248,18 +333,18 @@ export function MembersDirectory() {
                   )}
                 </div>
                 <div>
-                  <Link to={`/dashboard/members/${member.id}`} className="font-extrabold text-brand-blue hover:text-brand-primary transition-colors text-sm flex items-center gap-1 group-hover:underline line-clamp-1">
+                  <Link to={`/dashboard/members/${member.id}`} className={`font-extrabold ${theme.text} hover:opacity-80 transition-colors text-sm flex items-center gap-1 group-hover:underline line-clamp-1`}>
                     {member.name}
                   </Link>
-                  <div className="text-[11px] text-gray-500 font-medium mt-0.5">{member.id}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{member.phone}</div>
+                  <div className={`text-[11px] font-medium mt-0.5 ${theme.textSecondary}`}>{member.id}</div>
+                  <div className={`text-[11px] mt-0.5 ${theme.textSecondary}`}>{member.phone}</div>
                 </div>
               </div>
               
               <div className="flex flex-col items-end gap-1.5 shrink-0 pl-1">
                 {getStatusBadge(member.status)}
                 {member.hasArrears && (
-                  <span className="inline-flex items-center text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold uppercase">
+                  <span className="inline-flex items-center text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded font-bold uppercase border border-red-400 shadow-sm">
                     <ShieldAlert size={10} className="mr-1" /> Arrears
                   </span>
                 )}
@@ -268,10 +353,10 @@ export function MembersDirectory() {
 
             {/* Tags section */}
             <div className="px-4 py-2.5 flex gap-1.5 flex-wrap">
-              <span className="text-[9px] font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${theme.tagPrimary}`}>
                 {member.category}
               </span>
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${member.role !== 'Member' ? 'bg-brand-accent/10 text-brand-accent-light border-brand-accent/20' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${theme.tagSecondary}`}>
                 {member.role}
               </span>
             </div>
@@ -285,7 +370,7 @@ export function MembersDirectory() {
               </div>
               <div className="bg-gray-50/80 rounded-xl p-2.5 border border-gray-100/50 flex flex-col justify-center">
                 <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1">Active Loan</span>
-                <span className={`text-sm font-extrabold ${member.financials.activeLoanBalance > 0 ? 'text-brand-primary' : 'text-gray-400'}`}>
+                <span className={`text-sm font-extrabold ${member.financials.activeLoanBalance > 0 ? 'text-gray-800' : 'text-gray-400'}`}>
                   {formatCurrency(member.financials.activeLoanBalance)}
                 </span>
                 <div className="mt-1 flex items-center">
@@ -302,23 +387,23 @@ export function MembersDirectory() {
             </div>
 
             {/* Action Footer */}
-            <div className="mt-auto border-t border-brand-primary/20 bg-gradient-to-r from-brand-blue/5 to-brand-primary/10 p-2.5 rounded-b-2xl flex items-center justify-between">
+            <div className={`mt-auto border-t p-2.5 rounded-b-2xl flex items-center justify-between ${theme.footer}`}>
               <Link 
                 to={`/dashboard/members/${member.id}`}
-                className="flex-1 flex justify-center items-center py-1.5 text-xs font-bold text-brand-blue hover:text-brand-primary hover:bg-white/50 rounded-lg transition-colors group/btn shadow-sm bg-white/30"
+                className={`flex-1 flex justify-center items-center py-1.5 text-xs font-bold rounded-lg transition-colors group/btn shadow-sm bg-white/50 ${theme.link}`}
               >
                 <span>View Profile</span>
                 <ArrowRight size={14} className="ml-1 opacity-0 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
               </Link>
               
-              <div className="flex items-center space-x-1 relative border-l border-brand-primary/10 pl-2">
+              <div className={`flex items-center space-x-1 relative border-l pl-2 ${theme.iconBtnBorder}`}>
                 <button 
                   onClick={() => {
                     setSelectedMember(member);
                     setShowUploadModal(true);
                   }}
                   title="Upload KYC"
-                  className="p-1.5 text-brand-blue/60 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition-colors"
+                  className={`p-1.5 rounded-lg transition-colors ${theme.iconBtn}`}
                 >
                   <UploadCloud size={16} />
                 </button>
@@ -329,7 +414,7 @@ export function MembersDirectory() {
                       e.stopPropagation();
                       setActiveDropdown(activeDropdown === member.id ? null : member.id);
                     }}
-                    className={`p-1.5 rounded-lg transition-colors ${activeDropdown === member.id ? 'bg-brand-primary text-white shadow-sm' : 'text-brand-blue/60 hover:text-brand-primary hover:bg-brand-primary/10'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${activeDropdown === member.id ? 'bg-gray-800 text-white shadow-sm' : theme.iconBtn}`}
                   >
                     <MoreVertical size={16} />
                   </button>
@@ -356,7 +441,8 @@ export function MembersDirectory() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
         {filteredMembers.length === 0 && (
           <div className="col-span-full p-12 text-center text-gray-500 bg-white/50 border border-gray-200/50 rounded-2xl border-dashed">
             <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
